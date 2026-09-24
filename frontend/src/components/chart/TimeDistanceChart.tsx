@@ -130,16 +130,16 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
       </div>
 
       {/* Main Content Area: Scrollable Container with Gantt Chart + Route Details */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-100/70">
+      <div className="flex-1 overflow-y-auto p-2.5 sm:p-4 space-y-4 bg-slate-100/70">
         
         {/* 1. Vertikales Gantt-Diagramm */}
-        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5">
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-2.5 sm:p-4">
           {/* Gantt Area with Y-Axis Time Scale & Columns */}
           <div className="overflow-x-auto pb-2">
-            <div className="flex items-start gap-1.5 sm:gap-2 w-full">
+            <div className="flex items-start gap-1 sm:gap-1.5 w-full">
               {/* Y-Axis Time Scale Ruler (Links) */}
               <div
-                className="w-9 sm:w-11 shrink-0 flex flex-col justify-between select-none relative pt-24"
+                className="w-8 sm:w-10 shrink-0 flex flex-col justify-between select-none relative pt-24"
                 style={{ height: `${chartHeightPx + 110}px` }}
               >
                 {axisTicks.map((tick) => {
@@ -160,7 +160,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
               </div>
 
               {/* Gantt Columns Container with subtle background grid lines */}
-              <div className="relative flex-1 flex items-start gap-1.5 sm:gap-2.5 w-full">
+              <div className="relative flex-1 flex items-start gap-1 sm:gap-2 w-full">
                 {/* Horizontal Guideline Dashes across columns for each tick */}
                 {axisTicks.map((tick) => {
                   const topPx = 95 + Math.round(tick * pxPerMin);
@@ -195,7 +195,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                     <div
                       key={journey.id || journeyIdx}
                       onClick={() => onSelectJourney?.(journey)}
-                      className={`flex-1 min-w-[70px] sm:min-w-[85px] max-w-[170px] rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col z-10 relative overflow-hidden ${
+                      className={`flex-1 min-w-[55px] sm:min-w-[65px] max-w-[220px] rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col z-10 relative overflow-hidden ${
                         isSelected
                           ? 'bg-white border-red-500 ring-2 ring-red-400/40 shadow-md opacity-100'
                           : isDimmed
@@ -252,7 +252,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                         {/* Stacked Vertical Gantt Bar */}
                         <div
                           style={{ height: `${barHeight}px` }}
-                          className="w-11 sm:w-14 rounded-xl border border-slate-300/80 shadow-xs overflow-hidden flex flex-col transition-all my-1 shrink-0"
+                          className="w-11 sm:w-14 md:w-16 rounded-xl border border-slate-300/80 shadow-xs overflow-hidden flex flex-col transition-all my-1 shrink-0"
                         >
                           {journey.legs.map((leg, legIdx) => {
                             const isWalk = leg.type === 'WALK';

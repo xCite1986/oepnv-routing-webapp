@@ -39,7 +39,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     <div className="min-h-screen flex flex-col bg-slate-100 font-sans text-slate-800 antialiased">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1760px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20">
@@ -134,19 +134,19 @@ export const AppShell: React.FC<AppShellProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Form & Journey Results (Desktop: 5 cols) */}
-          <div className={`space-y-6 ${showMapOnMobile ? 'hidden lg:block' : 'block'} lg:col-span-5 xl:col-span-5`}>
+      <main className="flex-1 max-w-[1760px] w-full mx-auto p-3 sm:p-5 lg:p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+          {/* Left Column: Form & Journey Results (Desktop: 4 cols) */}
+          <div className={`space-y-6 ${showMapOnMobile ? 'hidden lg:block' : 'block'} lg:col-span-4 xl:col-span-4`}>
             {children}
           </div>
 
-          {/* Right Column: Chart / Comparison Diagram (Desktop: 7 cols, Mobile: full view when toggled) */}
+          {/* Right Column: Chart / Comparison Diagram (Desktop: 8 cols, Mobile: full view when toggled) */}
           {(chartNode || mapNode) && (
             <div
-              className={`lg:col-span-7 xl:col-span-7 ${
+              className={`lg:col-span-8 xl:col-span-8 ${
                 showMapOnMobile ? 'block h-[calc(100vh-6rem)]' : 'hidden lg:block'
-              } lg:sticky lg:top-24 h-[650px] lg:h-[calc(100vh-8rem)]`}
+              } lg:sticky lg:top-20 h-[650px] lg:h-[calc(100vh-7rem)]`}
             >
               {chartNode || mapNode}
             </div>
@@ -156,7 +156,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 text-xs text-slate-500">
-        <div className="max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="max-w-[1760px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-center sm:text-left">
             <span>ÖPNV-Routing Wien &middot; Basierend auf Open Data der Stadt Wien, Wiener Linien, ÖBB &amp; OpenStreetMap</span>
           </div>
