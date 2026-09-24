@@ -77,10 +77,20 @@ export function getLineColors(line?: string, type?: string): { bg: string; text:
   if (upper === 'U5') return { bg: '#06b6d4', text: '#ffffff' };
   if (upper === 'U6') return { bg: '#92400e', text: '#ffffff' };
 
-  // S-Bahn / ÖBB
-  if (upper.startsWith('S') || upper.startsWith('REX') || upper.startsWith('R') || upper === 'CAT') {
+  // S-Bahn / Regionalzug / ÖBB
+  if (upper.startsWith('S') || upper.startsWith('REX') || upper.startsWith('CJX') || upper.startsWith('R') || upper === 'CAT') {
     if (upper === 'CAT') return { bg: '#84cc16', text: '#1e293b' };
     return { bg: '#0284c7', text: '#ffffff' };
+  }
+
+  // Fernverkehr ÖBB (Railjet / ICE / IC / EC)
+  if (upper.startsWith('RJ') || upper.startsWith('IC') || upper.startsWith('EC')) {
+    return { bg: '#b91c1c', text: '#ffffff' };
+  }
+
+  // WESTbahn
+  if (upper.startsWith('WB') || upper.includes('WEST')) {
+    return { bg: '#2563eb', text: '#ffffff' };
   }
 
   // Straßenbahn

@@ -114,72 +114,101 @@ export function exportJourneyAsGraphic(
   legs.forEach((leg, index) => {
     const isWalk = leg.type === 'WALK';
     const durationMin = Math.round(leg.durationSeconds / 60);
-    const boxHeight = Math.max(64, durationMin * 4.2);
+    const boxHeight = Math.max(48, Math.min(85, durationMin * 3.5));
+    const ribbonWidth = 80;
 
-    // Vertikale Verbindungslinie
-    ctx.strokeStyle = isWalk ? '#94a3b8' : '#0284c7';
-    ctx.lineWidth = 4;
+    // Linke Seite: Farbiger Streckenbalken / Ribbon-Pille
     ctx.beginPath();
-    ctx.moveTo(startX + 20, currentY - 12);
-    ctx.lineTo(startX + 20, currentY + boxHeight + 12);
-    ctx.stroke();
-
-    // Abschnitts-Box
-    ctx.beginPath();
-    ctx.roundRect(startX + 45, currentY, contentWidth - 45, boxHeight, 12);
+    ctx.roundRect(startX + 20, currentY, ribbonWidth, boxHeight, 8);
 
     if (isWalk) {
       ctx.fillStyle = '#f1f5f9';
       ctx.fill();
       ctx.strokeStyle = '#cbd5e1';
-      ctx.lineWidth = 1;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
       ctx.stroke();
+      ctx.setLineDash([]);
 
       ctx.fillStyle = '#475569';
-      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText(`Fußweg: ${durationMin} Min. (${leg.distanceMeters || 300} m)`, startX + 65, currentY + 27);
-      ctx.font = 'normal 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillStyle = '#64748b';
-      ctx.fillText(`Von ${leg.fromStop.name} nach ${leg.toStop.name}`, startX + 65, currentY + 47);
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Fußweg', startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 - 4);
+      ctx.font = 'normal 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`${durationMin} Min.`, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 + 12);
+      ctx.textAlign = 'left';
     } else {
       const colors = getLineColors(leg.line, leg.type);
       ctx.fillStyle = colors.bg;
       ctx.fill();
 
-      // Linien-Badge & Titel
       ctx.fillStyle = colors.text;
+      ctx.textAlign = 'center';
       ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText(`${leg.line || leg.type} (${durationMin} Min.)`, startX + 65, currentY + 27);
+      ctx.fillText(leg.line || leg.type, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 - 3);
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`${durationMin} Min.`, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 + 13);
+      ctx.textAlign = 'left';
+    }
 
-      ctx.font = 'normal 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillStyle = colors.text;
-      const headsign = leg.headsign ? `• Richtung ${leg.headsign}` : '';
-      ctx.fillText(`${leg.fromStop.name} → ${leg.toStop.name} ${headsign}`, startX + 65, currentY + 47);
+    // Rechte Seite: Haltestellen, Richtung, Details
+    const textStartX = startX + 20 + ribbonWidth + 20;
+
+    if (isWalk) {
+      ctx.fillStyle = '#334155';
+      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText(`Fußweg (${leg.distanceMeters || 250} m)`, textStartX, currentY + boxHeight / 2 - 2);
+
+      ctx.font = 'normal 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(`${leg.fromStop.name} → ${leg.toStop.name}`, textStartX, currentY + boxHeight / 2 + 15);
+    } else {
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      const platStr = leg.fromStop.platform ? ` [${leg.fromStop.platform}]` : '';
+      ctx.fillText(`${leg.fromStop.name}${platStr} → ${leg.toStop.name}`, textStartX, currentY + boxHeight / 2 - 6);
+
+      ctx.font = 'normal 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillStyle = '#64748b';
+      const headsign = leg.headsign ? `Richtung ${leg.headsign}` : '';
+      const stopsStr = leg.stopsCount ? ` • ${leg.stopsCount} Stationen` : '';
+      ctx.fillText(`${headsign}${stopsStr}`, textStartX, currentY + boxHeight / 2 + 12);
 
       if (leg.delayMinutes && leg.delayMinutes > 0) {
-        ctx.fillStyle = '#fef08a';
-        ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        ctx.fillText(`+${leg.delayMinutes} Min. Verspätung`, startX + contentWidth - 190, currentY + 27);
+        ctx.fillStyle = '#dc2626';
+        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(`+${leg.delayMinutes} Min. Verspätung`, width - 230, currentY + boxHeight / 2 + 2);
       }
     }
 
-    currentY += boxHeight + 16;
+    currentY += boxHeight + 12;
 
     // Umstieg
     if (leg.transferInfo && index < legs.length - 1) {
       const tInfo = leg.transferInfo;
       const transferMin = Math.round(tInfo.durationSeconds / 60);
 
-      ctx.fillStyle = '#e2e8f0';
+      // Kleiner Amber Umstiegs-Badge auf der linken Ribbon-Spur
       ctx.beginPath();
-      ctx.roundRect(startX + 45, currentY, contentWidth - 45, 34, 8);
+      ctx.roundRect(startX + 20, currentY, ribbonWidth, 26, 6);
+      ctx.fillStyle = '#fef3c7';
       ctx.fill();
+      ctx.strokeStyle = '#fcd34d';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
-      ctx.fillStyle = '#334155';
+      ctx.fillStyle = '#92400e';
+      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`⇄ ${transferMin}m`, startX + 20 + ribbonWidth / 2, currentY + 17);
+      ctx.textAlign = 'left';
+
+      // Text rechts
+      ctx.fillStyle = '#78350f';
       ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText(`⇄ Umstieg am ${tInfo.stationName}: ${transferMin} Min. Wartezeit (${tInfo.difficultyLabel})`, startX + 60, currentY + 21);
+      ctx.fillText(`Umstieg am ${tInfo.stationName} (${tInfo.difficultyLabel})`, textStartX, currentY + 17);
 
-      currentY += 44;
+      currentY += 34;
     }
   });
 
