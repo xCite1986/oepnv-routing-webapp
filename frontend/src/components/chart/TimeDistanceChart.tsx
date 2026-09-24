@@ -7,14 +7,10 @@ import {
   BarChart2,
   Footprints,
   ArrowRightLeft,
-  Clock,
   CheckCircle2,
   AlertTriangle,
   X,
-  MapPin,
   ShieldCheck,
-  ChevronRight,
-  TrendingDown,
 } from 'lucide-react';
 
 interface TimeDistanceChartProps {
@@ -166,18 +162,6 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
         
         {/* 1. Vertikales Gantt-Diagramm */}
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5">
-          <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-500" />
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
-                Vertikales Fahrzeit- &amp; Linien-Gantt (Dauer im Vergleich)
-              </h3>
-            </div>
-            <span className="text-[11px] text-slate-400 italic">
-              Kürzere Balken = schnellere Verbindung
-            </span>
-          </div>
-
           {/* Gantt Area with Y-Axis Time Scale & Columns */}
           <div className="overflow-x-auto pb-2">
             <div className="flex items-start gap-2 min-w-max">
@@ -239,9 +223,9 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                     <div
                       key={journey.id || journeyIdx}
                       onClick={() => onSelectJourney?.(journey)}
-                      className={`w-[115px] sm:w-[130px] shrink-0 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col z-10 relative overflow-hidden ${
+                      className={`w-[115px] sm:w-[130px] shrink-0 rounded-2xl border transition-all duration-200 cursor-pointer flex flex-col z-10 relative overflow-hidden ${
                         isSelected
-                          ? 'bg-white border-red-500 ring-2 ring-red-400/40 shadow-xl opacity-100 scale-[1.01]'
+                          ? 'bg-white border-red-500 ring-2 ring-red-400/40 shadow-md opacity-100'
                           : isDimmed
                           ? 'bg-slate-50/70 border-slate-200 opacity-40 grayscale-[25%] hover:opacity-85 hover:border-slate-300'
                           : 'bg-white border-slate-200 shadow-2xs hover:border-red-300 hover:shadow-md opacity-100'
@@ -327,9 +311,9 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                                   title={`${leg.line || 'Fußweg'}: ${leg.fromStop.name} → ${leg.toStop.name} (${legMin} min)`}
                                 >
                                   {isWalk ? (
-                                    <div className="flex flex-col items-center justify-center leading-none">
-                                      <Footprints className="w-3 h-3 text-slate-500 mb-0.5" />
-                                      <span className="text-[9px] font-bold text-slate-600">
+                                    <div className="flex items-center justify-center gap-1 leading-none">
+                                      <Footprints className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                                      <span className="text-[10px] font-bold text-slate-600">
                                         {legMin}m
                                       </span>
                                     </div>
