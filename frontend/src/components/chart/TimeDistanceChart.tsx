@@ -1,5 +1,5 @@
 import React from 'react';
-import { Journey, Leg } from '../../types/routing';
+import { Journey } from '../../types/routing';
 import { formatTime, formatDuration, getLineColors } from '../../utils/formatters';
 import { exportJourneyAsGraphic } from '../../utils/exportRouteGraphic';
 import {
@@ -8,12 +8,12 @@ import {
   Footprints,
   ArrowRightLeft,
   Clock,
-  Sparkles,
   CheckCircle2,
   AlertTriangle,
   X,
   MapPin,
   ShieldCheck,
+  ChevronRight,
   TrendingDown,
 } from 'lucide-react';
 
@@ -30,15 +30,15 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
   onSelectJourney,
   onCloseMobile,
 }) => {
-  // Falls keine Route explizit ausgewählt ist, ist die empfohlene Route die Standardauswahl für den Export
-  const activeJourneyForExport = selectedJourney || journeys[0] || null;
+  // Falls keine Route explizit ausgewählt ist, ist die empfohlene bzw. erste Route aktiv
+  const activeJourney = selectedJourney || journeys[0] || null;
 
   const handleDownload = () => {
-    if (!activeJourneyForExport) return;
-    const title = activeJourneyForExport.tagLabel
-      ? `Route: ${activeJourneyForExport.tagLabel}`
+    if (!activeJourney) return;
+    const title = activeJourney.tagLabel
+      ? `Route: ${activeJourney.tagLabel}`
       : 'WienMobil Route';
-    exportJourneyAsGraphic(activeJourneyForExport, title);
+    exportJourneyAsGraphic(activeJourney, title);
   };
 
   if (!journeys || journeys.length === 0) {
@@ -51,13 +51,36 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
           Zeit-Weg-Liniengrafik
         </h3>
         <p className="text-xs text-slate-500 mt-1 max-w-xs">
-          Starte links eine Verbindungssuche, um gefundene Routen, Fahrzeiten und Umstiege grafisch zu vergleichen.
+          Starte links eine Verbindungssuche, um gefundene Routen, Fahrzeiten und Umstiege grafisch im vertikalen Gantt-Chart zu vergleichen.
         </p>
       </div>
     );
   }
 
   const hasSelection = Boolean(selectedJourney);
+
+  // 1. Skalierung für das vertikale Gantt-Chart berechnen
+  const durationsMin = journeys.map((j) => Math.max(1, Math.round(j.durationSeconds / 60)));
+  const maxDurationMin = Math.max(...durationsMin, 30);
+
+  // Intervall für die Y-Achsen-Zeitteilung (10, 15, 30 oder 60 Minuten)
+  let tickStep = 15;
+  if (maxDurationMin <= 30) tickStep = 10;
+  else if (maxDurationMin <= 90) tickStep = 15;
+  else if (maxDurationMin <= 180) tickStep = 30;
+  else tickStep = 60;
+
+  const maxAxisMin = Math.ceil(maxDurationMin / tickStep) * tickStep;
+
+  // Pixels pro Minute (dynamische Höhe: ca. 240px bis 320px)
+  const pxPerMin = Math.max(2.0, Math.min(5.5, 270 / maxAxisMin));
+  const chartHeightPx = Math.round(maxAxisMin * pxPerMin);
+
+  // Zeitmarkierungen (Ticks) generieren: 0, 15, 30, 45, ...
+  const axisTicks: number[] = [];
+  for (let t = 0; t <= maxAxisMin; t += tickStep) {
+    axisTicks.push(t);
+  }
 
   return (
     <div className="h-full bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
@@ -84,7 +107,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
 
         <div className="flex items-center gap-2">
           {/* Export Graphic Button */}
-          {activeJourneyForExport && (
+          {activeJourney && (
             <button
               type="button"
               onClick={handleDownload}
@@ -110,7 +133,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
         </div>
       </div>
 
-      {/* Sub-Header Legend & Hint */}
+      {/* Sub-Header Legend & Selection Status */}
       <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
@@ -119,279 +142,455 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
-            <span>S-Bahn / ÖBB</span>
+            <span>S-Bahn / Zug</span>
           </span>
           <span className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-sm border border-dashed border-slate-400 bg-slate-200"></span>
             <span>Fußweg</span>
           </span>
           <span className="flex items-center gap-1">
-            <ArrowRightLeft className="w-3 h-3 text-slate-500" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-amber-600"></span>
             <span>Umstiegszeit</span>
           </span>
         </div>
 
-        <div className="text-slate-400 italic">
+        <div className="text-slate-500 font-medium">
           {hasSelection
-            ? 'Klicke auf einen Balken, um eine andere Route zu fokussieren'
-            : 'Wähle links eine Route, um sie hervorzuheben'}
+            ? '✓ Gewählte Route hervorgehoben (andere zarter)'
+            : 'Klicke auf eine Route, um sie hervorzuheben'}
         </div>
       </div>
 
-      {/* Main Content Area: Side-by-Side Vertical Columns */}
-      <div className="flex-1 overflow-x-auto overflow-y-auto p-4 sm:p-5 bg-slate-100/60">
-        <div className="flex items-stretch gap-4 min-w-max pb-2">
-          {journeys.map((journey) => {
-            const isSelected = selectedJourney?.id === journey.id;
-            const isDimmed = hasSelection && !isSelected;
-            const durationMin = Math.round(journey.durationSeconds / 60);
+      {/* Main Content Area: Scrollable Container with Gantt Chart + Route Details */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-100/70">
+        
+        {/* 1. Vertikales Gantt-Diagramm */}
+        <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3 border-b border-slate-100 pb-2.5">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-slate-500" />
+              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                Vertikales Fahrzeit- &amp; Linien-Gantt (Dauer im Vergleich)
+              </h3>
+            </div>
+            <span className="text-[11px] text-slate-400 italic">
+              Kürzere Balken = schnellere Verbindung
+            </span>
+          </div>
 
-            return (
+          {/* Gantt Area with Y-Axis Time Scale & Columns */}
+          <div className="overflow-x-auto pb-2">
+            <div className="flex items-start gap-2 min-w-max">
+              {/* Y-Axis Time Scale Ruler (Links) */}
               <div
-                key={journey.id}
-                onClick={() => onSelectJourney?.(journey)}
-                className={`w-[260px] sm:w-[280px] flex flex-col rounded-2xl border transition-all duration-300 cursor-pointer overflow-hidden ${
-                  isSelected
-                    ? 'bg-white border-red-500 ring-2 ring-red-400/40 shadow-xl opacity-100 scale-[1.01] z-10'
-                    : isDimmed
-                    ? 'bg-slate-50/80 border-slate-200 opacity-40 grayscale-[25%] hover:opacity-85 hover:border-slate-300'
-                    : 'bg-white border-slate-200 shadow-sm hover:border-red-300 opacity-100'
-                }`}
+                className="w-12 sm:w-14 shrink-0 flex flex-col justify-between select-none relative pt-24"
+                style={{ height: `${chartHeightPx + 110}px` }}
               >
-                {/* Column Top Card Header */}
-                <div
-                  className={`p-3.5 border-b ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-red-50 via-rose-50 to-white border-red-200'
-                      : 'bg-white border-slate-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1 mb-2">
-                    <span
-                      className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full ${
-                        journey.recommended
-                          ? 'bg-red-600 text-white shadow-2xs'
-                          : journey.categoryTag === 'DIREKTER'
-                          ? 'bg-slate-800 text-white'
-                          : 'bg-slate-200 text-slate-800'
+                {axisTicks.map((tick) => {
+                  const topPx = 95 + Math.round(tick * pxPerMin);
+                  return (
+                    <div
+                      key={`axis-${tick}`}
+                      className="absolute right-2 flex items-center gap-1 -translate-y-1/2"
+                      style={{ top: `${topPx}px` }}
+                    >
+                      <span className="text-[10px] font-bold text-slate-400">
+                        {tick}m
+                      </span>
+                      <div className="w-1.5 h-[1.5px] bg-slate-300" />
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Gantt Columns Container with subtle background grid lines */}
+              <div className="relative flex-1 flex items-start gap-2.5 sm:gap-3">
+                {/* Horizontal Guideline Dashes across columns for each tick */}
+                {axisTicks.map((tick) => {
+                  const topPx = 95 + Math.round(tick * pxPerMin);
+                  return (
+                    <div
+                      key={`grid-${tick}`}
+                      className="absolute left-0 right-0 border-t border-dashed border-slate-200 pointer-events-none z-0"
+                      style={{ top: `${topPx}px` }}
+                    />
+                  );
+                })}
+
+                {/* Vertical Gantt Columns (one per journey) */}
+                {journeys.map((journey, journeyIdx) => {
+                  const isSelected = selectedJourney?.id === journey.id;
+                  const isDimmed = hasSelection && !isSelected;
+                  const durationMin = Math.round(journey.durationSeconds / 60);
+
+                  // Berechne proportionale Gesamthöhe des Gantt-Balkens
+                  const targetBarHeight = Math.round(durationMin * pxPerMin);
+
+                  // Mindesthöhe sicherstellen, damit jeder Abschnitt lesbar bleibt
+                  const minLegsHeight = journey.legs.reduce((acc, leg) => {
+                    const isWalk = leg.type === 'WALK';
+                    const hasTransfer = Boolean(leg.transferInfo);
+                    return acc + (isWalk ? 24 : 32) + (hasTransfer ? 22 : 0);
+                  }, 24);
+
+                  const barHeight = Math.max(minLegsHeight, targetBarHeight);
+
+                  return (
+                    <div
+                      key={journey.id || journeyIdx}
+                      onClick={() => onSelectJourney?.(journey)}
+                      className={`w-[115px] sm:w-[130px] shrink-0 rounded-2xl border transition-all duration-300 cursor-pointer flex flex-col z-10 relative overflow-hidden ${
+                        isSelected
+                          ? 'bg-white border-red-500 ring-2 ring-red-400/40 shadow-xl opacity-100 scale-[1.01]'
+                          : isDimmed
+                          ? 'bg-slate-50/70 border-slate-200 opacity-40 grayscale-[25%] hover:opacity-85 hover:border-slate-300'
+                          : 'bg-white border-slate-200 shadow-2xs hover:border-red-300 hover:shadow-md opacity-100'
                       }`}
                     >
-                      {journey.tagLabel || 'Option'}
-                    </span>
+                      {/* Compact Column Header */}
+                      <div
+                        className={`p-2.5 border-b text-center transition-colors ${
+                          isSelected
+                            ? 'bg-gradient-to-b from-red-50 via-rose-50 to-white border-red-200'
+                            : 'bg-slate-50/80 border-slate-200'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded-full mb-1 truncate max-w-full ${
+                            journey.recommended
+                              ? 'bg-red-600 text-white shadow-2xs'
+                              : journey.categoryTag === 'DIREKTER'
+                              ? 'bg-slate-800 text-white'
+                              : 'bg-slate-200 text-slate-800'
+                          }`}
+                        >
+                          {journey.tagLabel || `Opt. ${journeyIdx + 1}`}
+                        </span>
 
-                    {isSelected && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>Ausgewählt</span>
-                      </span>
-                    )}
-                  </div>
+                        {/* Total Duration Display (Crucial for test assertion e.g. "39 min") */}
+                        <div className="text-lg font-black text-slate-900 tracking-tight leading-none mt-0.5">
+                          {durationMin} min
+                        </div>
 
-                  {/* Travel Time & Timespan */}
-                  <div className="flex items-baseline justify-between">
-                    <div>
-                      <div className="text-2xl font-black text-slate-900 tracking-tight">
-                        {durationMin} min
-                      </div>
-                      <div className="text-xs text-slate-500 font-medium">
-                        {formatTime(journey.departureTime)} &rarr; {formatTime(journey.arrivalTime)}
-                      </div>
-                    </div>
+                        {/* Departure & Arrival Times */}
+                        <div className="text-[10px] text-slate-500 font-semibold mt-1">
+                          {formatTime(journey.departureTime)} &rarr; {formatTime(journey.arrivalTime)}
+                        </div>
 
-                    <div className="text-right text-[11px] text-slate-600 font-semibold">
-                      <div className="flex items-center justify-end gap-1">
-                        <ArrowRightLeft className="w-3 h-3 text-slate-400" />
-                        <span>
+                        {/* Transfers count */}
+                        <div className="text-[9px] text-slate-400 mt-0.5">
                           {journey.transferCount === 0
                             ? 'Direktfahrt'
                             : `${journey.transferCount} ${journey.transferCount === 1 ? 'Umstieg' : 'Umstiege'}`}
-                        </span>
+                        </div>
+
+                        {isSelected && (
+                          <div className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-extrabold text-red-700 bg-red-100/90 px-1.5 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-2.5 h-2.5" />
+                            <span>Ausgewählt</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="text-[10px] text-slate-400 font-normal">
-                        {formatDuration(journey.walkingSeconds)} Fußweg
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Reliability pill */}
-                  {journey.reliabilityPercent && (
-                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-500 flex items-center gap-1">
-                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Zuverlässigkeit:</span>
-                      </span>
-                      <span className="font-bold text-slate-800">
-                        {journey.reliabilityPercent}%
-                      </span>
-                    </div>
-                  )}
-                </div>
+                      {/* Proportional Vertical Gantt Bar Area */}
+                      <div className="p-2 sm:p-2.5 flex flex-col items-center justify-start bg-slate-50/40">
+                        {/* Start Station Dot */}
+                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-700 mb-1 max-w-full truncate">
+                          <span className="w-2 h-2 rounded-full bg-slate-800 shrink-0" />
+                          <span className="truncate">{journey.legs[0]?.fromStop.name}</span>
+                        </div>
 
-                {/* Compact Vertical Timeline Track (Ribbon Bar + Station Details) */}
-                <div className="flex-1 p-3.5 space-y-2 bg-slate-50/50 flex flex-col justify-between">
-                  {/* Origin Station */}
-                  <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-800 pb-0.5">
-                    <div className="w-3.5 h-3.5 rounded-full bg-slate-900 ring-4 ring-slate-200 shrink-0 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                    </div>
-                    <div className="min-w-0 flex items-baseline gap-1.5 truncate">
-                      <span className="font-mono font-bold text-slate-900 shrink-0">
-                        {formatTime(journey.departureTime)}
-                      </span>
-                      <span className="text-slate-700 font-medium truncate">
-                        {journey.legs[0]?.fromStop.name}
-                      </span>
-                    </div>
-                  </div>
+                        {/* Stacked Vertical Gantt Bar */}
+                        <div
+                          style={{ height: `${barHeight}px` }}
+                          className="w-14 sm:w-16 rounded-xl border border-slate-300/80 shadow-xs overflow-hidden flex flex-col transition-all my-1 shrink-0"
+                        >
+                          {journey.legs.map((leg, legIdx) => {
+                            const isWalk = leg.type === 'WALK';
+                            const legMin = Math.round(leg.durationSeconds / 60);
+                            const colors = getLineColors(leg.line, leg.type);
+                            const legWeight = Math.max(1, leg.durationSeconds);
 
-                  {/* Vertical Ribbon Segments */}
-                  <div className="relative pl-1 py-1 space-y-2">
-                    {journey.legs.map((leg, legIdx) => {
-                      const isWalk = leg.type === 'WALK';
-                      const legMin = Math.round(leg.durationSeconds / 60);
-                      const colors = getLineColors(leg.line, leg.type);
-
-                      // Proportionale Mindesthöhe für den vertikalen Streckenbalken
-                      const ribbonHeight = Math.max(38, Math.min(80, legMin * 2.8));
-
-                      return (
-                        <React.Fragment key={leg.id || legIdx}>
-                          <div className="flex items-stretch gap-2.5 group">
-                            {/* Left: The colored vertical ribbon pill ("farblich halt den verwendeten linien") */}
-                            <div
-                              style={
-                                isWalk
-                                  ? { minHeight: `${ribbonHeight}px` }
-                                  : {
-                                      backgroundColor: colors.bg,
-                                      color: colors.text,
-                                      minHeight: `${ribbonHeight}px`,
-                                    }
-                              }
-                              className={`w-14 shrink-0 rounded-lg flex flex-col items-center justify-center py-1 px-1 shadow-2xs transition-all ${
-                                isWalk
-                                  ? 'bg-slate-100 border border-dashed border-slate-300 text-slate-600'
-                                  : 'text-white'
-                              }`}
-                            >
-                              {isWalk ? (
-                                <>
-                                  <Footprints className="w-3.5 h-3.5 text-slate-500 mb-0.5" />
-                                  <span className="text-[10px] font-bold text-slate-600 leading-none">
-                                    {legMin} min
-                                  </span>
-                                </>
-                              ) : (
-                                <>
-                                  <span className="text-xs font-black tracking-tight leading-tight truncate max-w-full text-center">
-                                    {leg.line || leg.type}
-                                  </span>
-                                  <span className="text-[10px] font-bold opacity-90 leading-tight mt-0.5">
-                                    {legMin} min
-                                  </span>
-                                </>
-                              )}
-                            </div>
-
-                            {/* Right: Compact Station & Direction Details */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-center py-0.5 text-[11px] leading-tight">
-                              {isWalk ? (
-                                <div>
-                                  <div className="font-bold text-slate-700 flex items-center gap-1.5">
-                                    <span>Fußweg</span>
-                                    <span className="text-[10px] text-slate-400 font-normal">
-                                      ({leg.distanceMeters || 200} m)
-                                    </span>
-                                  </div>
-                                  <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                                    {leg.fromStop.name} &rarr; {leg.toStop.name}
-                                  </div>
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="font-bold text-slate-900 truncate flex items-center gap-1">
-                                    <span className="truncate">{leg.fromStop.name}</span>
-                                    <span className="text-slate-400 text-[10px] shrink-0">&rarr;</span>
-                                    <span className="truncate text-slate-700">{leg.toStop.name}</span>
-                                  </div>
-
-                                  <div className="text-[10px] text-slate-500 flex items-center gap-1 truncate mt-0.5">
-                                    {leg.headsign && (
-                                      <span className="truncate">Richtung {leg.headsign}</span>
-                                    )}
-                                    {leg.stopsCount ? <span>&bull; {leg.stopsCount} Stat.</span> : null}
-                                    {leg.fromStop.platform && (
-                                      <span className="font-mono text-slate-400">
-                                        [{leg.fromStop.platform}]
+                            return (
+                              <React.Fragment key={leg.id || legIdx}>
+                                {/* Transit or Walk Segment */}
+                                <div
+                                  style={{
+                                    flex: `${legWeight} 1 0%`,
+                                    backgroundColor: isWalk ? '#f1f5f9' : colors.bg,
+                                    color: isWalk ? '#475569' : colors.text,
+                                    minHeight: isWalk ? '22px' : '30px',
+                                  }}
+                                  className={`flex flex-col items-center justify-center p-1 text-center border-b border-black/10 last:border-b-0 transition-transform ${
+                                    isWalk ? 'border-dashed border-slate-300' : ''
+                                  }`}
+                                  title={`${leg.line || 'Fußweg'}: ${leg.fromStop.name} → ${leg.toStop.name} (${legMin} min)`}
+                                >
+                                  {isWalk ? (
+                                    <div className="flex flex-col items-center justify-center leading-none">
+                                      <Footprints className="w-3 h-3 text-slate-500 mb-0.5" />
+                                      <span className="text-[9px] font-bold text-slate-600">
+                                        {legMin}m
                                       </span>
-                                    )}
-                                  </div>
-
-                                  {leg.delayMinutes > 0 && (
-                                    <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 text-[9px] font-bold">
-                                      <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
-                                      <span>+{leg.delayMinutes} min Verzögerung</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex flex-col items-center justify-center leading-none">
+                                      <span className="text-[11px] font-black tracking-tight drop-shadow-xs truncate max-w-full">
+                                        {leg.line || leg.type}
+                                      </span>
+                                      <span className="text-[9px] font-bold opacity-90 mt-0.5">
+                                        {legMin}m
+                                      </span>
+                                      {leg.delayMinutes > 0 && (
+                                        <span className="text-[8px] font-black bg-amber-400 text-amber-950 rounded px-1 mt-0.5">
+                                          +{leg.delayMinutes}m
+                                        </span>
+                                      )}
                                     </div>
                                   )}
                                 </div>
-                              )}
-                            </div>
-                          </div>
 
-                          {/* Compact Transfer Segment between legs */}
-                          {leg.transferInfo && legIdx < journey.legs.length - 1 && (
-                            <div className="flex items-center gap-2.5 my-0.5">
-                              <div className="w-14 shrink-0 flex justify-center">
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-100/90 text-amber-900 text-[9px] font-extrabold border border-amber-300 shadow-2xs">
-                                  <ArrowRightLeft className="w-2.5 h-2.5 text-amber-700" />
-                                  <span>{Math.round(leg.transferInfo.durationSeconds / 60)} min</span>
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-amber-900 font-semibold truncate flex items-center gap-1">
-                                <span className="truncate">Umstieg {leg.transferInfo.stationName}</span>
-                                <span className="text-amber-700/80 font-normal">
-                                  ({leg.transferInfo.difficultyLabel})
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
+                                {/* Transfer Buffer Segment between legs */}
+                                {leg.transferInfo && legIdx < journey.legs.length - 1 && (
+                                  <div
+                                    style={{
+                                      minHeight: '20px',
+                                    }}
+                                    className="bg-amber-100 border-y border-amber-300 flex items-center justify-center px-1 text-amber-900 shrink-0"
+                                    title={`Umstieg: ${leg.transferInfo.stationName} (${Math.round(leg.transferInfo.durationSeconds / 60)} min)`}
+                                  >
+                                    <ArrowRightLeft className="w-2.5 h-2.5 text-amber-700 mr-0.5 shrink-0" />
+                                    <span className="text-[8px] font-black leading-none">
+                                      {Math.round(leg.transferInfo.durationSeconds / 60)}m
+                                    </span>
+                                  </div>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </div>
 
-                  {/* Destination Station */}
-                  <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-800 pt-1 border-t border-slate-200/60">
-                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-600 ring-4 ring-emerald-100 shrink-0 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        {/* Destination Station Dot */}
+                        <div className="flex items-center gap-1 text-[9px] font-bold text-slate-700 mt-1 max-w-full truncate">
+                          <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                          <span className="truncate">
+                            {journey.legs[journey.legs.length - 1]?.toStop.name}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Clickable Column Footer */}
+                      <div className="p-1.5 border-t border-slate-100 bg-white text-center mt-auto">
+                        <span
+                          className={`text-[10px] font-bold ${
+                            isSelected ? 'text-red-600' : 'text-slate-400 group-hover:text-slate-700'
+                          }`}
+                        >
+                          {isSelected ? '✓ Gewählt' : 'Auswählen'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex items-baseline gap-1.5 truncate">
-                      <span className="font-mono font-bold text-slate-900 shrink-0">
-                        {formatTime(journey.arrivalTime)}
-                      </span>
-                      <span className="text-slate-700 font-medium truncate">
-                        {journey.legs[journey.legs.length - 1]?.toStop.name}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
 
-                {/* Column Footer Action */}
-                <div className="p-2.5 border-t border-slate-200 bg-white text-center">
-                  <span
-                    className={`text-xs font-bold ${
-                      isSelected
-                        ? 'text-red-600'
-                        : 'text-slate-500 hover:text-slate-900'
-                    }`}
-                  >
-                    {isSelected ? '✓ Route ausgewählt' : 'Klicken zum Auswählen'}
+        {/* 2. Detailansicht der ausgewählten Route (Haltestellen, Gleise & Umstiege) */}
+        {activeJourney && (
+          <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 mb-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                    Ausgewählte Route im Detail
                   </span>
+                  {activeJourney.tagLabel && (
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-red-100 text-red-700">
+                      {activeJourney.tagLabel}
+                    </span>
+                  )}
+                </div>
+                <div className="text-sm font-black text-slate-900 mt-0.5">
+                  {activeJourney.legs[0]?.fromStop.name} &rarr;{' '}
+                  {activeJourney.legs[activeJourney.legs.length - 1]?.toStop.name}
                 </div>
               </div>
-            );
-          })}
-        </div>
+
+              <div className="text-right">
+                <div className="text-lg font-black text-slate-900 leading-tight">
+                  {Math.round(activeJourney.durationSeconds / 60)} min
+                </div>
+                <div className="text-xs text-slate-500 font-medium">
+                  {formatTime(activeJourney.departureTime)} bis {formatTime(activeJourney.arrivalTime)} Uhr
+                </div>
+              </div>
+            </div>
+
+            {/* Vertical Detailed Itinerary */}
+            <div className="space-y-3 relative before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+              {/* Origin Stop */}
+              <div className="relative flex items-start gap-3 pl-1">
+                <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0 z-10 shadow-xs">
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900 truncate">
+                      {activeJourney.legs[0]?.fromStop.name}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-slate-900 shrink-0">
+                      {formatTime(activeJourney.departureTime)} Uhr
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">Start der Reise</span>
+                </div>
+              </div>
+
+              {/* Legs in sequence */}
+              {activeJourney.legs.map((leg, idx) => {
+                const isWalk = leg.type === 'WALK';
+                const colors = getLineColors(leg.line, leg.type);
+                const legMin = Math.round(leg.durationSeconds / 60);
+
+                return (
+                  <React.Fragment key={leg.id || idx}>
+                    <div className="relative flex items-start gap-3 pl-1 group">
+                      {/* Line badge / Walk badge */}
+                      <div
+                        style={
+                          isWalk
+                            ? undefined
+                            : { backgroundColor: colors.bg, color: colors.text }
+                        }
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 z-10 shadow-xs font-bold text-xs ${
+                          isWalk
+                            ? 'bg-slate-100 border border-dashed border-slate-400 text-slate-700'
+                            : ''
+                        }`}
+                      >
+                        {isWalk ? (
+                          <Footprints className="w-4 h-4 text-slate-600" />
+                        ) : (
+                          <span className="text-[11px] font-black leading-none">
+                            {leg.line || leg.type}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                        {isWalk ? (
+                          <div>
+                            <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+                              <span>Fußweg ({leg.distanceMeters || 200} m)</span>
+                              <span className="font-mono text-slate-600">{legMin} min</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500 mt-0.5">
+                              {leg.fromStop.name} &rarr; {leg.toStop.name}
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-xs font-bold text-slate-900 truncate">
+                                {leg.fromStop.name} &rarr; {leg.toStop.name}
+                              </span>
+                              <span className="font-mono text-xs font-bold text-slate-900 shrink-0">
+                                {legMin} min
+                              </span>
+                            </div>
+
+                            <div className="text-[11px] text-slate-500 flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                              {leg.headsign && (
+                                <span>Richtung {leg.headsign}</span>
+                              )}
+                              {leg.stopsCount ? (
+                                <span>&bull; {leg.stopsCount} Zwischenstationen</span>
+                              ) : null}
+                              {leg.fromStop.platform && (
+                                <span className="font-mono text-slate-600 font-semibold">
+                                  [{leg.fromStop.platform}]
+                                </span>
+                              )}
+                            </div>
+
+                            {leg.delayMinutes > 0 && (
+                              <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-[10px] font-bold">
+                                <AlertTriangle className="w-3 h-3 text-amber-600" />
+                                <span>+{leg.delayMinutes} min Verspätung eingerechnet</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Transfer station */}
+                    {leg.transferInfo && idx < activeJourney.legs.length - 1 && (
+                      <div className="relative flex items-center gap-3 pl-1">
+                        <div className="w-5 h-5 rounded-full bg-amber-400 border border-amber-600 text-amber-950 flex items-center justify-center shrink-0 z-10 shadow-xs">
+                          <ArrowRightLeft className="w-3 h-3" />
+                        </div>
+                        <div className="min-w-0 flex-1 py-1 px-2.5 rounded-lg bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                          <span className="font-semibold">
+                            Umstieg am {leg.transferInfo.stationName}{' '}
+                            <span className="font-normal text-amber-700">
+                              ({leg.transferInfo.difficultyLabel})
+                            </span>
+                          </span>
+                          <span className="font-bold">
+                            {Math.round(leg.transferInfo.durationSeconds / 60)} min Puffer
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+
+              {/* Destination Stop */}
+              <div className="relative flex items-start gap-3 pl-1">
+                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 z-10 shadow-xs">
+                  <div className="w-2 h-2 rounded-full bg-white" />
+                </div>
+                <div className="min-w-0 flex-1 pt-0.5">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-xs font-bold text-slate-900 truncate">
+                      {activeJourney.legs[activeJourney.legs.length - 1]?.toStop.name}
+                    </span>
+                    <span className="font-mono text-xs font-bold text-emerald-700 shrink-0">
+                      {formatTime(activeJourney.arrivalTime)} Uhr
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-slate-500">Ziel erreicht</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick summary strip */}
+            <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Zuverlässigkeit: <strong>{activeJourney.reliabilityPercent || 95}%</strong></span>
+                </span>
+                <span>
+                  Fußweg gesamt: <strong>{formatDuration(activeJourney.walkingSeconds)}</strong>
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleDownload}
+                className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold hover:underline cursor-pointer"
+              >
+                <Download className="w-3 h-3" />
+                <span>Als Grafik-Bild speichern</span>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
