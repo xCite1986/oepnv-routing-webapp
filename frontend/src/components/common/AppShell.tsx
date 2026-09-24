@@ -55,7 +55,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">
-                Schnellste ÖPNV-Verbindungen unter realen Bedingungen
+                Schnellste Öffi-Verbindungen unter realen Bedingungen
               </p>
             </div>
           </div>
