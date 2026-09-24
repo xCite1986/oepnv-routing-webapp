@@ -4,7 +4,7 @@ import { TransitApiClient } from './api/client';
 import { AppShell } from './components/common/AppShell';
 import { SearchForm } from './components/search/SearchForm';
 import { JourneyResults } from './components/journeys/JourneyResults';
-import { MapPanel } from './components/map/MapPanel';
+import { TimeDistanceChart } from './components/chart/TimeDistanceChart';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { DisruptionsSidebar } from './components/disruptions/DisruptionsSidebar';
 import { VIENNA_LOCATIONS } from './api/viennaLocations';
@@ -120,12 +120,12 @@ export const App: React.FC = () => {
           window.location.hash = '#admin';
           setCurrentView('admin');
         }}
-        mapNode={
-          <MapPanel
-            journey={selectedJourney}
-            selectedLeg={selectedLeg}
-            isCollapsible={showMapOnMobile}
-            onClose={() => setShowMapOnMobile(false)}
+        chartNode={
+          <TimeDistanceChart
+            journeys={journeys}
+            selectedJourney={selectedJourney}
+            onSelectJourney={handleSelectJourney}
+            onCloseMobile={() => setShowMapOnMobile(false)}
           />
         }
       >

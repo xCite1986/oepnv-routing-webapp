@@ -22,7 +22,7 @@ describe('WienMobil Routing Frontend', () => {
 
     // Wait for the mock results to load
     await waitFor(() => {
-      expect(screen.getByText('EMPFOHLEN')).toBeInTheDocument();
+      expect(screen.getAllByText('EMPFOHLEN').length).toBeGreaterThanOrEqual(1);
     });
 
     // Verify explanation section
@@ -37,8 +37,8 @@ describe('WienMobil Routing Frontend', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText('DIREKTER')).toBeInTheDocument();
-      expect(screen.getByText('WENIGER ZU FUSS')).toBeInTheDocument();
+      expect(screen.getAllByText('DIREKTER').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('WENIGER ZU FUSS').length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -57,7 +57,7 @@ describe('WienMobil Routing Frontend', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText('EMPFOHLEN')).toBeInTheDocument();
+      expect(screen.getAllByText('EMPFOHLEN').length).toBeGreaterThanOrEqual(1);
     });
 
     const openBtn = screen.getAllByRole('button', { name: /Störungen/i })[0];
@@ -102,6 +102,26 @@ describe('WienMobil Routing Frontend', () => {
     const fastBtn = screen.getByRole('button', { name: /Schnell/i });
     fireEvent.click(fastBtn);
     expect(screen.getByText(/Sportliches Tempo/i)).toBeInTheDocument();
+  });
+
+  it('renders Zeit-Weg-Liniengrafik replacing the map with vertical bars and export button', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Zeit-Weg-Liniengrafik')).toBeInTheDocument();
+      expect(screen.getByText(/Fahrzeiten, Linien & Umstiege im vertikalen Direktvergleich/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Grafik exportieren/i })).toBeInTheDocument();
+    });
+
+    // Vertical columns should display travel times
+    expect(screen.getAllByText('39 min').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('47 min').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('49 min').length).toBeGreaterThanOrEqual(1);
+
+    // Export button triggers graphic export
+    const exportBtn = screen.getByRole('button', { name: /Grafik exportieren/i });
+    expect(exportBtn).toBeInTheDocument();
+    fireEvent.click(exportBtn);
   });
 });
 

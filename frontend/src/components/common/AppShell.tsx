@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Compass, Info, Map, Sparkles, Database, AlertTriangle } from 'lucide-react';
+import { Compass, Info, BarChart2, Sparkles, Database, AlertTriangle } from 'lucide-react';
 
 interface AppShellProps {
   children: React.ReactNode;
+  chartNode?: React.ReactNode;
   mapNode?: React.ReactNode;
   showMapOnMobile?: boolean;
   onToggleMapMobile?: () => void;
@@ -13,6 +14,7 @@ interface AppShellProps {
 
 export const AppShell: React.FC<AppShellProps> = ({
   children,
+  chartNode,
   mapNode,
   showMapOnMobile = false,
   onToggleMapMobile,
@@ -66,15 +68,15 @@ export const AppShell: React.FC<AppShellProps> = ({
               <span>{isBackendConnected ? 'API Live' : 'Demo Modus'}</span>
             </div>
 
-            {/* Mobile Map Toggle */}
+            {/* Mobile Diagram Toggle */}
             {onToggleMapMobile && (
               <button
                 type="button"
                 onClick={onToggleMapMobile}
                 className="lg:hidden inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 shadow-2xs"
               >
-                <Map className="w-4 h-4 text-red-600" />
-                <span>{showMapOnMobile ? 'Liste' : 'Karte'}</span>
+                <BarChart2 className="w-4 h-4 text-red-600" />
+                <span>{showMapOnMobile ? 'Liste' : 'Grafik'}</span>
               </button>
             )}
 
@@ -128,14 +130,14 @@ export const AppShell: React.FC<AppShellProps> = ({
             {children}
           </div>
 
-          {/* Right Column: Sticky Map (Desktop: 5-6 cols, Mobile: full view when toggled) */}
-          {mapNode && (
+          {/* Right Column: Chart / Comparison Diagram (Desktop: 5-6 cols, Mobile: full view when toggled) */}
+          {(chartNode || mapNode) && (
             <div
               className={`lg:col-span-5 xl:col-span-6 ${
                 showMapOnMobile ? 'block h-[calc(100vh-6rem)]' : 'hidden lg:block'
-              } lg:sticky lg:top-24 h-[600px] lg:h-[calc(100vh-8rem)]`}
+              } lg:sticky lg:top-24 h-[650px] lg:h-[calc(100vh-8rem)]`}
             >
-              {mapNode}
+              {chartNode || mapNode}
             </div>
           )}
         </div>

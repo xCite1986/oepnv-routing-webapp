@@ -5,7 +5,7 @@ import { RealtimeBadge } from '../common/RealtimeBadge';
 import { JourneyExplanation } from './JourneyExplanation';
 import { AlternativeComparison } from './AlternativeComparison';
 import { JourneyTimeline } from './JourneyTimeline';
-import { ChevronDown, ChevronUp, ArrowRight, Footprints, ArrowRightLeft, Sparkles, Map, ShieldCheck, Gauge } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, Footprints, ArrowRightLeft, Sparkles, BarChart2, ShieldCheck, Gauge } from 'lucide-react';
 
 interface JourneyCardProps {
   journey: Journey;
@@ -229,16 +229,17 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
             </div>
           )}
 
-          {/* Interactive Map toggle button for mobile/compact views */}
+          {/* Focus button in Zeit-Weg-Grafik */}
           {onShowOnMap && (
             <div className="my-2 flex justify-end">
               <button
                 type="button"
                 onClick={() => onShowOnMap(journey)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                title="Diese Route in der Zeit-Weg-Liniengrafik fokussieren"
               >
-                <Map className="w-3.5 h-3.5 text-blue-600" />
-                <span>Auf Karte zeigen</span>
+                <BarChart2 className="w-3.5 h-3.5 text-red-600" />
+                <span>In Grafik fokussieren</span>
               </button>
             </div>
           )}
