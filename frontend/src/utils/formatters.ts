@@ -7,6 +7,40 @@ export function formatTime(isoString: string): string {
   }
 }
 
+/**
+ * Formatiert den Störungszeitpunkt (z.B. Beginn oder voraussichtliches Ende).
+ * Gibt z.B. "heute, 14:30 Uhr" oder "24.09., 14:30 Uhr" zurück.
+ */
+export function formatDisruptionTime(isoString?: string): string {
+  if (!isoString) return '';
+  try {
+    const d = new Date(isoString);
+    if (isNaN(d.getTime())) return '';
+
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    const timeStr = d.toLocaleTimeString('de-AT', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+
+    if (isToday) {
+      return `heute, ${timeStr} Uhr`;
+    }
+
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    return `${day}.${month}., ${timeStr} Uhr`;
+  } catch {
+    return '';
+  }
+}
+
 export function formatDuration(seconds: number): string {
   const minutes = Math.round(seconds / 60);
   if (minutes < 60) {

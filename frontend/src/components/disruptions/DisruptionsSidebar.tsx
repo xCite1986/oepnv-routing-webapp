@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Journey, IncidentAlert } from '../../types/routing';
 import { TransitApiClient } from '../../api/client';
-import { getLineColors } from '../../utils/formatters';
+import { getLineColors, formatDisruptionTime } from '../../utils/formatters';
 import {
   X,
   AlertTriangle,
@@ -166,6 +166,19 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
                         <div className="font-bold text-sm text-slate-900 mb-1">
                           {inc.title}
                         </div>
+
+                        {inc.validFrom && (
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-2.5 rounded-lg bg-amber-100/90 border border-amber-300 text-xs font-semibold text-amber-950 shadow-2xs">
+                            <Clock className="w-3.5 h-3.5 text-amber-800 shrink-0" />
+                            <span>Störungsbeginn: {formatDisruptionTime(inc.validFrom)}</span>
+                            {inc.validTo && (
+                              <span className="text-amber-800 font-normal">
+                                &middot; Bis voraussichtlich {formatDisruptionTime(inc.validTo)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
                         <p className="text-xs text-slate-700 leading-relaxed">
                           {inc.description}
                         </p>
@@ -267,9 +280,16 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
                         {inc.description}
                       </p>
 
-                      <div className="mt-2 text-[10px] text-slate-400 flex items-center gap-1 font-mono">
-                        <Clock className="w-3 h-3" />
-                        <span>Meldung aktiv &middot; Wiener Linien / ÖBB Echtzeit</span>
+                      <div className="mt-2.5 pt-2 border-t border-slate-200/70 text-[10px] text-slate-500 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-medium text-slate-700">
+                          <Clock className="w-3 h-3 text-slate-500 shrink-0" />
+                          <span>
+                            {inc.validFrom ? `Beginn: ${formatDisruptionTime(inc.validFrom)}` : 'Meldung aktiv'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Wiener Linien / ÖBB Live
+                        </span>
                       </div>
                     </div>
                   ))}

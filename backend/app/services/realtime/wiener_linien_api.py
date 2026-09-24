@@ -147,13 +147,22 @@ class WienerLinienApiClient:
                         if "AUFZUG" in title.upper() or "AUFZUG" in desc.upper():
                             severity = "INFO"
 
+                        start_time = (
+                            info.get("time", {}).get("start")
+                            or attrs.get("start")
+                            or attrs.get("ausserBetriebSeit")
+                            or time.strftime("%Y-%m-%dT%H:%M:%S+02:00")
+                        )
+                        end_time = info.get("time", {}).get("end") or attrs.get("end")
+
                         incidents.append(IncidentAlert(
                             id=f"wl-ogd-{idx}",
                             title=f"{title}: {status}" if status else title,
                             description=desc,
                             lines=[str(l) for l in lines] if lines else ["Netz Wien"],
                             severity=severity,
-                            validFrom=time.strftime("%Y-%m-%dT%H:%M:%S+02:00")
+                            validFrom=start_time,
+                            validTo=end_time
                         ))
                     return incidents
         except Exception:

@@ -68,6 +68,7 @@ describe('WienMobil Routing Frontend', () => {
       expect(screen.getByText('Störungen & Verkehrslage')).toBeInTheDocument();
       expect(screen.getByText(/Auswirkung auf gewählte Route/i)).toBeInTheDocument();
       expect(screen.getByText(/Alle Meldungen \(Wien & Umgebung\)/i)).toBeInTheDocument();
+      expect(screen.getByText(/Störungsbeginn:/i)).toBeInTheDocument();
     });
 
     // Close button
