@@ -129,34 +129,6 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
         </div>
       </div>
 
-      {/* Sub-Header Legend & Selection Status */}
-      <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-600">
-        <div className="flex items-center gap-3">
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-600"></span>
-            <span>U-Bahn</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-sky-600"></span>
-            <span>S-Bahn / Zug</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-sm border border-dashed border-slate-400 bg-slate-200"></span>
-            <span>Fußweg</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 border border-amber-600"></span>
-            <span>Umstiegszeit</span>
-          </span>
-        </div>
-
-        <div className="text-slate-500 font-medium">
-          {hasSelection
-            ? '✓ Gewählte Route hervorgehoben (andere zarter)'
-            : 'Klicke auf eine Route, um sie hervorzuheben'}
-        </div>
-      </div>
-
       {/* Main Content Area: Scrollable Container with Gantt Chart + Route Details */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 bg-slate-100/70">
         
