@@ -31,6 +31,20 @@ export function createMockViennaJourneys(baseDateStr?: string): JourneySearchRes
     transferCount: 2,
     realtime: true,
     totalDelayMinutes: 0,
+    costScore: 48,
+    costBreakdown: {
+      costScore: 48,
+      etaSeconds: 39 * 60,
+      etaMinutes: 39.0,
+      transferPenalty: 300,
+      missedConnectionRisk: 120,
+      disruptionRisk: 120,
+      alpha: 1.0,
+      beta: 1.2,
+      gamma: 1.5,
+      reliabilityPercent: 96,
+      summary: 'ETA: 39.0m | Transfer-Penalty: 5.0m | Anschlussrisiko: 2.0m | Störungsrisiko: 2.0m',
+    },
     explanation: {
       headline: 'Aktuell schnellste Verbindung',
       details: [
@@ -242,6 +256,20 @@ export function createMockViennaJourneys(baseDateStr?: string): JourneySearchRes
     realtime: true,
     totalDelayMinutes: 11,
     hasDisruptions: true,
+    costScore: 78,
+    costBreakdown: {
+      costScore: 78,
+      etaSeconds: 47 * 60,
+      etaMinutes: 47.0,
+      transferPenalty: 0,
+      missedConnectionRisk: 0,
+      disruptionRisk: 1860,
+      alpha: 1.0,
+      beta: 1.2,
+      gamma: 1.5,
+      reliabilityPercent: 68,
+      summary: 'ETA: 47.0m | Transfer-Penalty: 0.0m | Anschlussrisiko: 0.0m | Störungsrisiko: 31.0m',
+    },
     explanation: {
       headline: 'Direkte Alternative',
       details: [
@@ -354,6 +382,20 @@ export function createMockViennaJourneys(baseDateStr?: string): JourneySearchRes
     transferCount: 1,
     realtime: true,
     totalDelayMinutes: 0,
+    costScore: 61,
+    costBreakdown: {
+      costScore: 61,
+      etaSeconds: 49 * 60,
+      etaMinutes: 49.0,
+      transferPenalty: 180,
+      missedConnectionRisk: 240,
+      disruptionRisk: 300,
+      alpha: 1.0,
+      beta: 1.2,
+      gamma: 1.5,
+      reliabilityPercent: 91,
+      summary: 'ETA: 49.0m | Transfer-Penalty: 3.0m | Anschlussrisiko: 4.0m | Störungsrisiko: 5.0m',
+    },
     explanation: {
       headline: 'Bequeme Alternative mit minimalem Fußweg',
       details: [

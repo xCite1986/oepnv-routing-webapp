@@ -123,5 +123,21 @@ describe('WienMobil Routing Frontend', () => {
     expect(exportBtn).toBeInTheDocument();
     fireEvent.click(exportBtn);
   });
+
+  it('renders Kosten- & Risiko-Score penalties in minutes with one decimal place', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Kosten- & Risiko-Score').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Check penalty titles and formatted values in min (e.g., +0,0 min, +15,0 min, +20,4 min)
+    expect(screen.getAllByText('Umstiegs-Penalty').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Anschluss-Risiko').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Störungs-Risiko').length).toBeGreaterThanOrEqual(1);
+
+    // There should be values formatted with German comma and "min", e.g. "+0,0 min"
+    expect(screen.getAllByText(/\+[0-9]+,[0-9] min/).length).toBeGreaterThanOrEqual(3);
+  });
 });
 

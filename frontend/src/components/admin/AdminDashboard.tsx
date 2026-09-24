@@ -1038,7 +1038,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
                       <span className="text-slate-500 font-medium">Berechneter Risiko-Strafterm:</span>
                       <span className="font-mono font-bold text-amber-700">
-                        +{simResult.riskPenaltySeconds.toFixed(1)} s ({Math.round(simResult.riskPenaltySeconds / 60)} min Äquivalent)
+                        +{simResult.riskPenaltySeconds.toFixed(1)} s (+{(simResult.riskPenaltySeconds / 60).toFixed(1).replace('.', ',')} min Äquivalent)
                       </span>
                     </div>
                   </div>

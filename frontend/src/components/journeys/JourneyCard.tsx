@@ -201,22 +201,22 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
                 <div className="bg-white/95 border border-red-100/80 p-2.5 rounded-xl shadow-2xs">
                   <div className="text-slate-500 text-[10px] font-medium">ETA (Dauer)</div>
-                  <div className="font-bold text-slate-900 font-mono text-xs">{journey.costBreakdown.etaMinutes} min</div>
+                  <div className="font-bold text-slate-900 font-mono text-xs">{journey.costBreakdown.etaMinutes.toFixed(1).replace('.', ',')} min</div>
                 </div>
 
                 <div className="bg-white/95 border border-red-100/80 p-2.5 rounded-xl shadow-2xs">
                   <div className="text-slate-500 text-[10px] font-medium">Umstiegs-Penalty</div>
-                  <div className="font-bold text-amber-700 font-mono text-xs">+{Math.round(journey.costBreakdown.transferPenalty)}s</div>
+                  <div className="font-bold text-amber-700 font-mono text-xs">+{(journey.costBreakdown.transferPenalty / 60).toFixed(1).replace('.', ',')} min</div>
                 </div>
 
                 <div className="bg-white/95 border border-red-100/80 p-2.5 rounded-xl shadow-2xs">
                   <div className="text-slate-500 text-[10px] font-medium">Anschluss-Risiko</div>
-                  <div className="font-bold text-red-600 font-mono text-xs">+{Math.round(journey.costBreakdown.missedConnectionRisk)}s</div>
+                  <div className="font-bold text-red-600 font-mono text-xs">+{(journey.costBreakdown.missedConnectionRisk / 60).toFixed(1).replace('.', ',')} min</div>
                 </div>
 
                 <div className="bg-white/95 border border-red-100/80 p-2.5 rounded-xl shadow-2xs">
                   <div className="text-slate-500 text-[10px] font-medium">Störungs-Risiko</div>
-                  <div className="font-bold text-purple-700 font-mono text-xs">+{Math.round(journey.costBreakdown.disruptionRisk)}s</div>
+                  <div className="font-bold text-purple-700 font-mono text-xs">+{(journey.costBreakdown.disruptionRisk / 60).toFixed(1).replace('.', ',')} min</div>
                 </div>
               </div>
             </div>
