@@ -429,18 +429,27 @@ class OebbApiClient:
                         leg_dur = max(60, int((arr_dt_sched - dep_dt_sched).total_seconds()))
 
                         # Prüfe ob ein Umstieg vorherging -> TransferInfo anhängen
+                        # Nur wenn zuvor bereits ein Verkehrsmittel (nicht nur Start-Fußweg) genutzt wurde
                         transfer_info = None
-                        if legs:
-                            prev_leg = legs[-1]
-                            prev_arr = datetime.fromisoformat(prev_leg.endTime)
-                            buf_sec = int((dep_dt_sched - prev_arr).total_seconds())
+                        has_prior_transit = any(l.type != "WALK" for l in legs)
+                        if has_prior_transit:
+                            prior_transit = [l for l in legs if l.type != "WALK"][-1]
+                            prev_transit_arr = datetime.fromisoformat(prior_transit.endTime)
+                            total_window_sec = max(0, int((dep_dt_sched - prev_transit_arr).total_seconds()))
+                            
+                            walk_legs_between = [l for l in legs[legs.index(prior_transit) + 1:] if l.type == "WALK"]
+                            walk_meters = sum(l.distanceMeters or 100 for l in walk_legs_between) if walk_legs_between else 100
+                            walk_duration_sec = sum(l.durationSeconds for l in walk_legs_between) if walk_legs_between else 60
+                            realistic_walk_sec = max(45, int(walk_meters / 1.1))
+                            
+                            buf_sec = max(0, total_window_sec - min(walk_duration_sec, realistic_walk_sec))
                             buf_min = max(0, round(buf_sec / 60))
-                            diff_lvl = "RISKY" if buf_min < 3 else ("TIGHT" if buf_min < 5 else "RELAXED")
+                            diff_lvl = "RISKY" if buf_min < 2 else ("TIGHT" if buf_min < 4 else "RELAXED")
                             diff_lbl = "Knapper Anschluss" if diff_lvl == "RISKY" else ("Sportlicher Umstieg" if diff_lvl == "TIGHT" else "Sicherer Umstieg")
                             transfer_info = TransferInfo(
                                 stationName=dep_loc.get("name") or "Umsteigebahnhof",
                                 durationSeconds=buf_sec,
-                                walkingMeters=prev_leg.distanceMeters or 150,
+                                walkingMeters=walk_meters,
                                 difficulty=diff_lvl,
                                 difficultyLabel=diff_lbl,
                                 bufferMinutes=buf_min

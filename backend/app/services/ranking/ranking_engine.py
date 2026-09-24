@@ -86,14 +86,36 @@ class RankingEngine:
                         transfer_penalty_sec += 180.0
 
         # 3. Missed Connection Risk (Wahrscheinlichkeit verpasster Anschlüsse)
+        # Verbindungsrisiko existiert nur zwischen aufeinanderfolgenden ÖPNV-Fahrten (nicht bei reinen Fußwegen)
         missed_connection_risk_sec = 0.0
         connection_reliabilities = []
-        for i in range(len(journey.legs) - 1):
-            curr_leg = journey.legs[i]
-            next_leg = journey.legs[i + 1]
+        
+        transit_indices = [idx for idx, leg in enumerate(journey.legs) if leg.type != "WALK"]
+        
+        for k in range(len(transit_indices) - 1):
+            curr_leg = journey.legs[transit_indices[k]]
+            next_leg = journey.legs[transit_indices[k + 1]]
             curr_arr = cls.parse_time(curr_leg.endTime)
             next_dep = cls.parse_time(next_leg.startTime)
-            buffer_sec = max(0, int((next_dep - curr_arr).total_seconds()))
+            window_sec = max(0, int((next_dep - curr_arr).total_seconds()))
+
+            # Zwischenfußwege ermitteln
+            walk_legs = [
+                l for l in journey.legs[transit_indices[k] + 1 : transit_indices[k + 1]]
+                if l.type == "WALK"
+            ]
+            walk_dist_total = sum(l.distanceMeters or 100 for l in walk_legs)
+
+            # Transfer-Buffer ermitteln
+            t_info = next_leg.transferInfo or (walk_legs[0].transferInfo if walk_legs and walk_legs[0].transferInfo else None)
+            if t_info and t_info.bufferMinutes > 0:
+                buffer_sec = t_info.bufferMinutes * 60
+            elif walk_legs:
+                est_walk_sec = max(45, int(walk_dist_total / 1.1))
+                buffer_sec = max(0, window_sec - est_walk_sec)
+            else:
+                # Bahnsteiggleicher Umstieg oder selbe Station ohne separaten Fußweg
+                buffer_sec = max(0, window_sec - 60)
 
             risk = PunctualityPerformanceService.calculate_missed_connection_risk(
                 curr_leg.line,
@@ -130,16 +152,34 @@ class RankingEngine:
         )
 
         # Gesamte Zuverlässigkeit (0 - 100 %)
-        rel_factor = 1.0
+        # 1. Anschluss-Wahrscheinlichkeit: Gelingt jeder Umstieg?
+        rel_transfers = 1.0
         for rel in connection_reliabilities:
-            rel_factor *= rel
-        for leg in journey.legs:
-            if leg.type != "WALK":
-                metric = PunctualityPerformanceService.get_metric(leg.line, leg.type)
-                rel_factor *= (metric.punctualityRatePct / 100.0)
+            rel_transfers *= rel
 
-        reliability_pct = max(1, min(99, int(round(rel_factor * 100))))
-        if journey.transferCount == 0 and not journey.hasDisruptions:
+        # 2. Ausfallsicherheit und Pünktlichkeit der genutzten Linien
+        transit_legs = [l for l in journey.legs if l.type != "WALK"]
+        cancel_factor = 1.0
+        punct_sum = 0.0
+        for leg in transit_legs:
+            metric = PunctualityPerformanceService.get_metric(leg.line, leg.type)
+            cancel_factor *= (1.0 - (metric.cancellationRatePct / 100.0))
+            punct_sum += metric.punctualityRatePct
+
+        avg_punct_factor = (punct_sum / len(transit_legs) / 100.0) if transit_legs else 0.98
+
+        # 3. Akute Störungen oder Ausfälle
+        disruption_factor = 1.0
+        if getattr(journey, 'hasCancellations', False) or any(l.isCancelled for l in journey.legs):
+            disruption_factor = 0.05
+        elif getattr(journey, 'hasDisruptions', False) or any(l.disruptionNotice for l in journey.legs):
+            disruption_factor = 0.85
+        elif any(l.delayMinutes >= 5 for l in journey.legs):
+            disruption_factor = 0.90
+
+        total_rel = rel_transfers * cancel_factor * avg_punct_factor * disruption_factor
+        reliability_pct = max(1, min(99, int(round(total_rel * 100))))
+        if len(transit_indices) <= 1 and not getattr(journey, 'hasDisruptions', False) and not getattr(journey, 'hasCancellations', False):
             reliability_pct = max(94, reliability_pct)
 
         summary_str = (

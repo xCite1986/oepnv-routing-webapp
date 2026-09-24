@@ -114,3 +114,89 @@ def test_missed_connection_probability_calculation():
     risk_safe = PunctualityPerformanceService.calculate_missed_connection_risk("S7", "TRAIN", buffer_seconds=600)
     risk_tight = PunctualityPerformanceService.calculate_missed_connection_risk("S7", "TRAIN", buffer_seconds=60)
     assert risk_tight > risk_safe * 10
+
+def test_multi_leg_journey_reliability_not_one_percent():
+    now = datetime(2026, 9, 25, 8, 0, 0)
+    
+    # Reise: Fußweg -> U1 -> Fußweg am Praterstern -> S7 -> Ziel-Fußweg
+    journey = Journey(
+        id="journey-test-multi",
+        recommended=True,
+        departureTime=now.isoformat(),
+        arrivalTime=(now + timedelta(minutes=39)).isoformat(),
+        durationSeconds=39 * 60,
+        walkingSeconds=9 * 60,
+        walkingMeters=680,
+        transferCount=1,
+        realtime=True,
+        totalDelayMinutes=0,
+        explanation=JourneyExplanation(headline="", details=[]),
+        legs=[
+            Leg(
+                id="leg-w1",
+                type="WALK",
+                fromStop=StopPoint(name="Start", lat=48.2, lon=16.3, scheduledTime=now.isoformat()),
+                toStop=StopPoint(name="Stephansplatz", lat=48.21, lon=16.35, scheduledTime=(now + timedelta(minutes=4)).isoformat()),
+                startTime=now.isoformat(),
+                endTime=(now + timedelta(minutes=4)).isoformat(),
+                durationSeconds=240,
+                distanceMeters=300
+            ),
+            Leg(
+                id="leg-u1",
+                type="SUBWAY",
+                line="U1",
+                fromStop=StopPoint(name="Stephansplatz", lat=48.21, lon=16.35, scheduledTime=(now + timedelta(minutes=4)).isoformat()),
+                toStop=StopPoint(name="Praterstern", lat=48.22, lon=16.39, scheduledTime=(now + timedelta(minutes=10)).isoformat()),
+                startTime=(now + timedelta(minutes=4)).isoformat(),
+                endTime=(now + timedelta(minutes=10)).isoformat(),
+                durationSeconds=360
+            ),
+            Leg(
+                id="leg-w2",
+                type="WALK",
+                fromStop=StopPoint(name="Praterstern U", lat=48.22, lon=16.39, scheduledTime=(now + timedelta(minutes=10)).isoformat()),
+                toStop=StopPoint(name="Praterstern S", lat=48.221, lon=16.391, scheduledTime=(now + timedelta(minutes=13)).isoformat()),
+                startTime=(now + timedelta(minutes=10)).isoformat(),
+                endTime=(now + timedelta(minutes=13)).isoformat(),
+                durationSeconds=180,
+                distanceMeters=180,
+                transferInfo=TransferInfo(
+                    stationName="Praterstern",
+                    durationSeconds=180,
+                    walkingMeters=180,
+                    difficulty="RELAXED",
+                    difficultyLabel="Entspannter Umstieg",
+                    bufferMinutes=3
+                )
+            ),
+            Leg(
+                id="leg-s7",
+                type="TRAIN",
+                line="S7",
+                fromStop=StopPoint(name="Praterstern S", lat=48.221, lon=16.391, scheduledTime=(now + timedelta(minutes=13)).isoformat()),
+                toStop=StopPoint(name="Flughafen Wien", lat=48.11, lon=16.56, scheduledTime=(now + timedelta(minutes=37)).isoformat()),
+                startTime=(now + timedelta(minutes=13)).isoformat(),
+                endTime=(now + timedelta(minutes=37)).isoformat(),
+                durationSeconds=1440
+            ),
+            Leg(
+                id="leg-w3",
+                type="WALK",
+                fromStop=StopPoint(name="Flughafen Wien", lat=48.11, lon=16.56, scheduledTime=(now + timedelta(minutes=37)).isoformat()),
+                toStop=StopPoint(name="Terminal", lat=48.111, lon=16.561, scheduledTime=(now + timedelta(minutes=39)).isoformat()),
+                startTime=(now + timedelta(minutes=37)).isoformat(),
+                endTime=(now + timedelta(minutes=39)).isoformat(),
+                durationSeconds=120,
+                distanceMeters=200
+            )
+        ]
+    )
+
+    cost, breakdown, rel_pct = RankingEngine.calculate_cost(journey, alpha=1.0, beta=1.0, gamma=1.0)
+    
+    # Zuverlässigkeit muss bei entspanntem Umstieg hoch sein (>= 80%) und darf keinesfalls 1% betragen!
+    assert rel_pct >= 80, f"Zuverlässigkeit darf nicht im Keller sein, war {rel_pct}%"
+    # Das Risiko verpasster Anschlüsse darf nicht die Phantom-Strafen für Fußwege enthalten
+    assert breakdown.missedConnectionRisk < 100, f"Missed connection risk zu hoch: {breakdown.missedConnectionRisk}s"
+

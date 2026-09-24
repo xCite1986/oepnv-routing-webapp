@@ -384,8 +384,8 @@ class PunctualityPerformanceService:
         z = (Puffer - mu) / sigma
         P(missed) = 0.5 * erfc(z / sqrt(2))
         """
-        if buffer_seconds <= 0:
-            return 0.999  # Umstieg physikalisch unmöglich
+        if buffer_seconds < 0:
+            return 0.95  # Negativer Zeitpuffer: Umstieg nur bei Verspätung des Folgezugs möglich
 
         metric = cls.get_metric(incoming_line, incoming_type)
         mu_sec = metric.meanDelayMinutes * 60.0
@@ -397,8 +397,8 @@ class PunctualityPerformanceService:
         # 0.5 * erfc(z / sqrt(2)) entspricht 1 - Phi(z)
         prob = 0.5 * math.erfc(z / math.sqrt(2.0))
 
-        # Reale Unter- und Obergrenze (auch bei 20 Min Puffer gibt es 0.5% Grundrisiko)
-        prob = max(0.005, min(0.99, prob))
+        # Reale Unter- und Obergrenze
+        prob = max(0.005, min(0.95, prob))
         return round(prob, 4)
 
     @classmethod
