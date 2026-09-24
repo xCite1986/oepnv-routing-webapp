@@ -105,3 +105,45 @@ export function getLineColors(line?: string, type?: string): { bg: string; text:
 
   return { bg: '#334155', text: '#ffffff' };
 }
+
+export interface ParsedLineInfo {
+  lineName: string;
+  subNumber?: string;
+  category?: string;
+}
+
+export function parseLegLineInfo(rawLine?: string, legType?: string): ParsedLineInfo {
+  if (!rawLine) {
+    return { lineName: legType || 'ÖPNV' };
+  }
+  const trimmed = rawLine.trim();
+
+  // Pattern 1: "S 1 (Zug-Nr. 19307)" or "REX 2 (Zug-Nr. 23345)" or "S 45 (Zug-Nr. 20552)"
+  const zugNrMatch = trimmed.match(/^(.*?)\s*\((?:Zug-Nr\.?|Zug)?\s*(\d+)\)$/i);
+  if (zugNrMatch) {
+    return {
+      lineName: zugNrMatch[1].trim(),
+      subNumber: zugNrMatch[2],
+    };
+  }
+
+  // Pattern 2: "RJX19952" or "RJX 60" or "WB 79214" or "ICE 118"
+  const trainCodeMatch = trimmed.match(/^(RJX|RJ|ICE|IC|EC|CJX|REX|WB|WESTbahn|S|R)\s*(\d+)$/i);
+  if (trainCodeMatch) {
+    return {
+      lineName: trainCodeMatch[1].toUpperCase(),
+      subNumber: trainCodeMatch[2],
+    };
+  }
+
+  // Pattern 3: "Bus 29B" or "Tram 2"
+  const busMatch = trimmed.match(/^(Bus|Tram|Str|Bim)\s+(.*)$/i);
+  if (busMatch) {
+    return {
+      category: busMatch[1],
+      lineName: busMatch[2],
+    };
+  }
+
+  return { lineName: trimmed };
+}

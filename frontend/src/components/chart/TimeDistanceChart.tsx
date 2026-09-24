@@ -1,6 +1,6 @@
 import React from 'react';
 import { Journey } from '../../types/routing';
-import { formatTime, formatDuration, getLineColors } from '../../utils/formatters';
+import { formatTime, formatDuration, getLineColors, parseLegLineInfo } from '../../utils/formatters';
 import { exportJourneyAsGraphic } from '../../utils/exportRouteGraphic';
 import {
   Download,
@@ -381,13 +381,15 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
             </div>
 
             {/* Vertical Detailed Itinerary */}
-            <div className="space-y-3 relative before:absolute before:left-3.5 before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
+            <div className="space-y-3 relative before:absolute before:left-[31px] sm:before:left-[39px] before:top-3 before:bottom-3 before:w-0.5 before:bg-slate-200">
               {/* Origin Stop */}
-              <div className="relative flex items-start gap-3 pl-1">
-                <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shrink-0 z-10 shadow-xs">
-                  <div className="w-2 h-2 rounded-full bg-white" />
+              <div className="relative flex items-center gap-2.5 sm:gap-3">
+                <div className="w-16 sm:w-20 shrink-0 flex items-center justify-center z-10">
+                  <div className="w-5 h-5 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-xs">
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1 pt-0.5">
+                <div className="min-w-0 flex-1 py-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-xs font-bold text-slate-900 truncate">
                       {activeJourney.legs[0]?.fromStop.name}
@@ -405,33 +407,59 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                 const isWalk = leg.type === 'WALK';
                 const colors = getLineColors(leg.line, leg.type);
                 const legMin = Math.round(leg.durationSeconds / 60);
+                const parsed = parseLegLineInfo(leg.line, leg.type);
 
                 return (
                   <React.Fragment key={leg.id || idx}>
-                    <div className="relative flex items-start gap-3 pl-1 group">
-                      {/* Line badge / Walk badge */}
+                    <div className="relative flex items-stretch gap-2.5 sm:gap-3 group">
+                      {/* Left Badge: Stretches to the exact same height as the right textual card */}
                       <div
                         style={
                           isWalk
                             ? undefined
                             : { backgroundColor: colors.bg, color: colors.text }
                         }
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 z-10 shadow-xs font-bold text-xs ${
+                        className={`w-16 sm:w-20 shrink-0 self-stretch rounded-xl flex flex-col items-center justify-center p-1.5 text-center z-10 shadow-xs border transition-all ${
                           isWalk
-                            ? 'bg-slate-100 border border-dashed border-slate-400 text-slate-700'
-                            : ''
+                            ? 'bg-slate-100 border-dashed border-slate-300 text-slate-700'
+                            : 'border-black/10'
                         }`}
                       >
                         {isWalk ? (
-                          <Footprints className="w-4 h-4 text-slate-600" />
+                          <>
+                            <Footprints className="w-4 h-4 text-slate-500 shrink-0 mb-0.5" />
+                            <span className="text-[11px] font-bold text-slate-700 leading-tight">
+                              {legMin} min
+                            </span>
+                            {leg.distanceMeters && (
+                              <span className="text-[9px] text-slate-500 leading-none mt-0.5">
+                                {leg.distanceMeters} m
+                              </span>
+                            )}
+                          </>
                         ) : (
-                          <span className="text-[11px] font-black leading-none">
-                            {leg.line || leg.type}
-                          </span>
+                          <>
+                            <span className="text-xs sm:text-sm font-black tracking-tight leading-tight truncate max-w-full drop-shadow-2xs">
+                              {parsed.lineName}
+                            </span>
+                            {parsed.subNumber ? (
+                              <span className="text-[8px] sm:text-[9px] font-bold tracking-tight bg-black/25 text-white rounded px-1.5 py-0.5 mt-1 leading-none truncate max-w-full">
+                                {parsed.subNumber.startsWith('Zug') ? parsed.subNumber : `Zug ${parsed.subNumber}`}
+                              </span>
+                            ) : parsed.category ? (
+                              <span className="text-[8px] sm:text-[9px] font-semibold opacity-90 leading-none mt-0.5 uppercase tracking-wider">
+                                {parsed.category}
+                              </span>
+                            ) : null}
+                            <span className="text-[8px] sm:text-[9px] font-bold opacity-80 leading-none mt-1">
+                              {legMin} min
+                            </span>
+                          </>
                         )}
                       </div>
 
-                      <div className="min-w-0 flex-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
+                      {/* Right Textual Box */}
+                      <div className="min-w-0 flex-1 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 flex flex-col justify-center">
                         {isWalk ? (
                           <div>
                             <div className="flex items-center justify-between text-xs font-bold text-slate-800">
@@ -480,11 +508,13 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
 
                     {/* Transfer station */}
                     {leg.transferInfo && idx < activeJourney.legs.length - 1 && (
-                      <div className="relative flex items-center gap-3 pl-1">
-                        <div className="w-5 h-5 rounded-full bg-amber-400 border border-amber-600 text-amber-950 flex items-center justify-center shrink-0 z-10 shadow-xs">
-                          <ArrowRightLeft className="w-3 h-3" />
+                      <div className="relative flex items-center gap-2.5 sm:gap-3">
+                        <div className="w-16 sm:w-20 shrink-0 flex items-center justify-center z-10">
+                          <div className="w-6 h-6 rounded-full bg-amber-400 border border-amber-600 text-amber-950 flex items-center justify-center shadow-xs">
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1 py-1 px-2.5 rounded-lg bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                        <div className="min-w-0 flex-1 py-1.5 px-2.5 rounded-lg bg-amber-50/80 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
                           <span className="font-semibold">
                             Umstieg am {leg.transferInfo.stationName}{' '}
                             <span className="font-normal text-amber-700">
@@ -502,11 +532,13 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
               })}
 
               {/* Destination Stop */}
-              <div className="relative flex items-start gap-3 pl-1">
-                <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 z-10 shadow-xs">
-                  <div className="w-2 h-2 rounded-full bg-white" />
+              <div className="relative flex items-center gap-2.5 sm:gap-3">
+                <div className="w-16 sm:w-20 shrink-0 flex items-center justify-center z-10">
+                  <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1 pt-0.5">
+                <div className="min-w-0 flex-1 py-1">
                   <div className="flex items-baseline justify-between gap-2">
                     <span className="text-xs font-bold text-slate-900 truncate">
                       {activeJourney.legs[activeJourney.legs.length - 1]?.toStop.name}
