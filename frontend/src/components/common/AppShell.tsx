@@ -28,7 +28,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     <div className="min-h-screen flex flex-col bg-slate-100 font-sans text-slate-800 antialiased">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20">
@@ -123,17 +123,17 @@ export const AppShell: React.FC<AppShellProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto p-4 sm:p-6 lg:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Form & Journey Results (Desktop: 7 cols) */}
-          <div className={`space-y-6 ${showMapOnMobile ? 'hidden lg:block' : 'block'} lg:col-span-7 xl:col-span-6`}>
+          {/* Left Column: Form & Journey Results (Desktop: 5 cols) */}
+          <div className={`space-y-6 ${showMapOnMobile ? 'hidden lg:block' : 'block'} lg:col-span-5 xl:col-span-5`}>
             {children}
           </div>
 
-          {/* Right Column: Chart / Comparison Diagram (Desktop: 5-6 cols, Mobile: full view when toggled) */}
+          {/* Right Column: Chart / Comparison Diagram (Desktop: 7 cols, Mobile: full view when toggled) */}
           {(chartNode || mapNode) && (
             <div
-              className={`lg:col-span-5 xl:col-span-6 ${
+              className={`lg:col-span-7 xl:col-span-7 ${
                 showMapOnMobile ? 'block h-[calc(100vh-6rem)]' : 'hidden lg:block'
               } lg:sticky lg:top-24 h-[650px] lg:h-[calc(100vh-8rem)]`}
             >
@@ -145,7 +145,7 @@ export const AppShell: React.FC<AppShellProps> = ({
 
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-400">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>ÖPNV-Routing Wien &middot; Basierend auf OpenStreetMap &amp; Wiener Linien Realtime</span>
           <span>Regelbasierte Erklärung &amp; minimale realistische Ankunftszeit</span>
         </div>
