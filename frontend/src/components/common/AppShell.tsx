@@ -87,7 +87,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                 title="Aktuelle Störungsmeldungen &amp; Verkehrslage anzeigen"
               >
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                <span className="hidden md:inline">Störungen</span>
+                <span className="hidden sm:inline">Störungen</span>
                 <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold flex items-center justify-center">
                   1
                 </span>

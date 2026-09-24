@@ -1,7 +1,7 @@
 import React from 'react';
 import { Journey, Leg } from '../../types/routing';
 import { JourneyCard } from './JourneyCard';
-import { Radio, AlertCircle, RefreshCw, AlertTriangle, ChevronRight } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface JourneyResultsProps {
   journeys: Journey[];
@@ -89,37 +89,6 @@ export const JourneyResults: React.FC<JourneyResultsProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Realtime Status Indicator Banner with Sidebar Trigger */}
-      <div className="flex items-center justify-between gap-2 p-3 rounded-xl bg-slate-900 text-white shadow-xs">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-          </span>
-          <span className="text-xs font-semibold">
-            {realtimeActive ? 'Live-Echtzeit aktiv' : 'Fahrplanmodus'}
-          </span>
-          <span className="text-xs text-slate-400 hidden sm:inline">&middot; Wien &amp; Umgebung</span>
-        </div>
-
-        {onOpenDisruptions && (
-          <button
-            type="button"
-            onClick={onOpenDisruptions}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/40 transition-all cursor-pointer group shadow-2xs"
-            title="Alle aktuellen Störungsmeldungen für die Route &amp; Wien in der Sidebar anzeigen"
-          >
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-            <span className="hidden sm:inline">Störungen anzeigen</span>
-            <span className="sm:hidden">Störungen</span>
-            <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold flex items-center justify-center">
-              1
-            </span>
-            <ChevronRight className="w-3.5 h-3.5 text-amber-300/80 group-hover:translate-x-0.5 transition-transform" />
-          </button>
-        )}
-      </div>
-
       {/* Journey Cards List */}
       <div className="space-y-3">
         {journeys.map((journey) => (
