@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, Info, Map, Sparkles } from 'lucide-react';
+import { Compass, Info, Map, Sparkles, Database } from 'lucide-react';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -7,6 +7,7 @@ interface AppShellProps {
   showMapOnMobile?: boolean;
   onToggleMapMobile?: () => void;
   isBackendConnected?: boolean;
+  onOpenAdmin?: () => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -15,6 +16,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   showMapOnMobile = false,
   onToggleMapMobile,
   isBackendConnected = false,
+  onOpenAdmin,
 }) => {
   const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -71,6 +73,19 @@ export const AppShell: React.FC<AppShellProps> = ({
               >
                 <Map className="w-4 h-4 text-red-600" />
                 <span>{showMapOnMobile ? 'Liste' : 'Karte'}</span>
+              </button>
+            )}
+
+            {/* Admin Dashboard Button */}
+            {onOpenAdmin && (
+              <button
+                type="button"
+                onClick={onOpenAdmin}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors shadow-2xs"
+                title="Admin-Bereich, GTFS-Fahrplandaten & API-Checks"
+              >
+                <Database className="w-3.5 h-3.5 text-red-600" />
+                <span className="hidden md:inline">Datenpflege &amp; Admin</span>
               </button>
             )}
 

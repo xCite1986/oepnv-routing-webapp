@@ -5,9 +5,11 @@ import { AppShell } from './components/common/AppShell';
 import { SearchForm } from './components/search/SearchForm';
 import { JourneyResults } from './components/journeys/JourneyResults';
 import { MapPanel } from './components/map/MapPanel';
+import { AdminDashboard } from './components/admin/AdminDashboard';
 import { VIENNA_LOCATIONS } from './api/viennaLocations';
 
 export const App: React.FC = () => {
+  const [currentView, setCurrentView] = useState<'app' | 'admin'>('app');
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<Leg | null>(null);
@@ -18,6 +20,20 @@ export const App: React.FC = () => {
   const [showMapOnMobile, setShowMapOnMobile] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
   const [lastRequest, setLastRequest] = useState<JourneySearchRequest | null>(null);
+
+  // Sync hash routing #admin
+  useEffect(() => {
+    const handleHashChange = () => {
+      if (window.location.hash === '#admin') {
+        setCurrentView('admin');
+      } else {
+        setCurrentView('app');
+      }
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   // Check backend availability on mount
   useEffect(() => {
@@ -80,11 +96,26 @@ export const App: React.FC = () => {
     setShowMapOnMobile(true);
   };
 
+  if (currentView === 'admin') {
+    return (
+      <AdminDashboard
+        onBackToApp={() => {
+          window.location.hash = '';
+          setCurrentView('app');
+        }}
+      />
+    );
+  }
+
   return (
     <AppShell
       showMapOnMobile={showMapOnMobile}
       onToggleMapMobile={() => setShowMapOnMobile(!showMapOnMobile)}
       isBackendConnected={isBackendConnected}
+      onOpenAdmin={() => {
+        window.location.hash = '#admin';
+        setCurrentView('admin');
+      }}
       mapNode={
         <MapPanel
           journey={selectedJourney}
