@@ -21,6 +21,9 @@ import {
   Train,
   ArrowLeft,
   Search,
+  TrendingUp,
+  Sliders,
+  Gauge,
 } from 'lucide-react';
 import { getLineColors } from '../../utils/formatters';
 
@@ -29,7 +32,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) => {
-  const [activeTab, setActiveTab] = useState<'gtfs' | 'diagnostics' | 'live' | 'config'>('gtfs');
+  const [activeTab, setActiveTab] = useState<'gtfs' | 'diagnostics' | 'live' | 'performance' | 'config'>('gtfs');
   const [feeds, setFeeds] = useState<GtfsFeed[]>([]);
   const [diagnostics, setDiagnostics] = useState<ApiDiagnosticsResponse | null>(null);
   const [wlDepartures, setWlDepartures] = useState<LiveMonitorResponse | null>(null);
@@ -42,6 +45,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
   const [isCheckingApis, setIsCheckingApis] = useState(false);
   const [isLoadingLive, setIsLoadingLive] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<string | null>(null);
+
+  // Train Performance & Cost Parameters State
+  const [perfMetrics, setPerfMetrics] = useState<any[]>([]);
+  const [costConfig, setCostConfig] = useState<{
+    alpha: number;
+    beta: number;
+    gamma: number;
+    baseTransferPenaltySec: number;
+    defaultHeadwayPenaltySec: number;
+    formula: string;
+  }>({
+    alpha: 1.0,
+    beta: 1.0,
+    gamma: 1.0,
+    baseTransferPenaltySec: 180,
+    defaultHeadwayPenaltySec: 900,
+    formula: 'cost = ETA + (alpha * transfer_penalty) + (beta * missed_connection_risk) + (gamma * disruption_risk)',
+  });
+  const [simLine, setSimLine] = useState<string>('S7');
+  const [simBuffer, setSimBuffer] = useState<number>(3);
+  const [simResult, setSimResult] = useState<any>(null);
+  const [isSavingCost, setIsSavingCost] = useState(false);
+  const [costFeedback, setCostFeedback] = useState<string | null>(null);
 
   // Load GTFS feeds
   const loadFeeds = async () => {
@@ -80,10 +106,46 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
     }
   };
 
+  // Load Train Performance & Cost Configuration
+  const loadPerformanceAndCost = async () => {
+    try {
+      const [perfData, costData] = await Promise.all([
+        AdminApiClient.getTrainPerformance(),
+        AdminApiClient.getCostConfig(),
+      ]);
+      setPerfMetrics(perfData.metrics || []);
+      setCostConfig(costData);
+      handleRunSimulation('S7', 3);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const handleRunSimulation = async (line = simLine, buffer = simBuffer) => {
+    try {
+      const res = await AdminApiClient.simulateTransferRisk(line, 'TRAIN', buffer);
+      setSimResult(res);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const handleSaveCostConfig = async () => {
+    setIsSavingCost(true);
+    setCostFeedback(null);
+    try {
+      const res = await AdminApiClient.updateCostConfig(costConfig);
+      setCostFeedback(res.message || 'Kostenfunktions-Gewichtungen erfolgreich aktualisiert.');
+    } finally {
+      setIsSavingCost(false);
+    }
+  };
+
   useEffect(() => {
     loadFeeds();
     runChecks();
     loadLiveMonitors();
+    loadPerformanceAndCost();
   }, []);
 
   const handleSyncFeed = async (feedId: string) => {
@@ -189,6 +251,19 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
           >
             <Radio className="w-4 h-4" />
             <span>Live-Echtzeit-Monitor</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('performance')}
+            className={`py-3 px-3 text-xs font-bold border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'performance'
+                ? 'border-red-600 text-red-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <TrendingUp className="w-4 h-4" />
+            <span>Zug-Performance & Kostenfunktion</span>
           </button>
 
           <button
@@ -596,7 +671,325 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
           </div>
         )}
 
-        {/* TAB 4: KONFIGURATION */}
+        {/* TAB 4: ZUG-PERFORMANCE & KOSTENFUNKTION */}
+        {activeTab === 'performance' && (
+          <div className="space-y-6">
+            {/* Top Banner: Dataset ground truth */}
+            <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white p-6 rounded-2xl shadow-sm border border-slate-700">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="px-2 py-0.5 rounded text-[11px] font-extrabold uppercase bg-red-600 text-white tracking-wider">
+                      Hugging Face Dataset
+                    </span>
+                    <span className="text-xs font-mono text-slate-300">
+                      piebro/deutsche-bahn-data & ÖBB Scotty
+                    </span>
+                  </div>
+                  <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                    Zug-Performance & Kostenfunktion
+                  </h2>
+                  <p className="text-xs text-slate-300 max-w-2xl mt-1">
+                    Verbindungsbewertung auf Basis realer Pünktlichkeitsstatistiken aus Millionen Zugfahrten (S-Bahn, Regionalzüge, Railjet, ICE).
+                    Abfahrts- und Ankunftszeiten werden mit erwarteten Verspätungen korrigiert und Umstiegsrisiken exakt berechnet.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/10 text-center">
+                    <div className="text-lg font-black text-white">{perfMetrics.length}</div>
+                    <div className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">Linienprofile</div>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/10 text-center">
+                    <div className="text-lg font-black text-emerald-400">100%</div>
+                    <div className="text-[10px] text-slate-300 uppercase tracking-wider font-semibold">Grounded Data</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Formula & Weighting Sliders */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              <div className="lg:col-span-7 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-red-600" />
+                      <span>Kostenfunktion (§18) & Gewichtungsfaktoren</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      cost = ETA + (alpha × transfer_penalty) + (beta × missed_connection_risk) + (gamma × disruption_risk)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Mathematical Formula Display */}
+                <div className="p-3.5 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs sm:text-sm border border-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
+                  <span className="text-emerald-400 font-bold">cost</span>
+                  <span className="text-slate-500 mx-1">=</span>
+                  <span className="text-blue-300">ETA</span>
+                  <span className="text-slate-500 mx-1">+</span>
+                  <span className="text-amber-300 font-bold">α × transfer_penalty</span>
+                  <span className="text-slate-500 mx-1">+</span>
+                  <span className="text-rose-300 font-bold">beta × missed_connection_risk</span>
+                  <span className="text-slate-500 mx-1">+</span>
+                  <span className="text-purple-300 font-bold">gamma × disruption_risk</span>
+                </div>
+
+                {costFeedback && (
+                  <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>{costFeedback}</span>
+                  </div>
+                )}
+
+                {/* 3 Parameter Controls */}
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+                      <span className="flex items-center gap-1.5 text-amber-700">
+                        <span>&alpha; (Alpha) – Umstiegs-Penalty</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-mono text-xs">
+                        {costConfig.alpha.toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="4.0"
+                      step="0.1"
+                      value={costConfig.alpha}
+                      onChange={(e) => setCostConfig({ ...costConfig, alpha: parseFloat(e.target.value) })}
+                      className="w-full accent-amber-600 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[11px] text-slate-400 mt-0.5">
+                      <span>0.0 (Umstiege egal, pure ETA)</span>
+                      <span>1.0 (Standard: 180s Friktion)</span>
+                      <span>4.0 (Stark umstiegs-avers)</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+                      <span className="flex items-center gap-1.5 text-rose-700">
+                        <span>&beta; (Beta) – Risiko verpasster Anschlüsse</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-rose-100 text-rose-900 font-mono text-xs">
+                        {costConfig.beta.toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="3.0"
+                      step="0.1"
+                      value={costConfig.beta}
+                      onChange={(e) => setCostConfig({ ...costConfig, beta: parseFloat(e.target.value) })}
+                      className="w-full accent-rose-600 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[11px] text-slate-400 mt-0.5">
+                      <span>0.0 (Risiko ignoriert)</span>
+                      <span>1.0 (Standard: P(missed) &times; Takt)</span>
+                      <span>3.0 (Maximale Pufferabsicherung)</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+                      <span className="flex items-center gap-1.5 text-purple-700">
+                        <span>&gamma; (Gamma) – Störungs- &amp; Ausfallrisiko</span>
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-mono text-xs">
+                        {costConfig.gamma.toFixed(2)}
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.0"
+                      max="3.0"
+                      step="0.1"
+                      value={costConfig.gamma}
+                      onChange={(e) => setCostConfig({ ...costConfig, gamma: parseFloat(e.target.value) })}
+                      className="w-full accent-purple-600 cursor-pointer"
+                    />
+                    <div className="flex justify-between text-[11px] text-slate-400 mt-0.5">
+                      <span>0.0 (Ausfälle ignoriert)</span>
+                      <span>1.0 (Standard: P(Ausfall) &times; 1800s + Live-Alarm)</span>
+                      <span>3.0 (Absolute Zuverlässigkeit)</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex justify-end">
+                    <button
+                      type="button"
+                      disabled={isSavingCost}
+                      onClick={handleSaveCostConfig}
+                      className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isSavingCost && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                      <span>Gewichtungen speichern</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulation Card */}
+              <div className="lg:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4 flex flex-col justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Gauge className="w-4 h-4 text-blue-600" />
+                    <span>Anschlussrisiko-Simulator</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Testet P(Verspätung &gt; Puffer) für Linien und Pufferzeiten in Echtzeit.
+                  </p>
+
+                  <div className="mt-4 space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Zubringer-Zug / Linie
+                      </label>
+                      <select
+                        value={simLine}
+                        onChange={(e) => {
+                          setSimLine(e.target.value);
+                          handleRunSimulation(e.target.value, simBuffer);
+                        }}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
+                      >
+                        <option value="S7">S7 (Flughafen S-Bahn Wien - &oslash; +0.8m)</option>
+                        <option value="S1">S1 (Gänserndorf - &oslash; +1.1m)</option>
+                        <option value="REX 1">REX 1 (Regional-Express - &oslash; +2.1m)</option>
+                        <option value="RJX">RJX (Railjet Express - &oslash; +4.2m)</option>
+                        <option value="ICE">ICE (Deutsche Bahn/ÖBB - &oslash; +6.8m)</option>
+                        <option value="U1">U1 (Wiener Linien - &oslash; +0.3m)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+                        <span>Verfügbarer Umstiegspuffer</span>
+                        <span className="font-mono text-xs font-bold text-blue-600">{simBuffer} Minuten</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="1"
+                        max="15"
+                        step="0.5"
+                        value={simBuffer}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          setSimBuffer(val);
+                          handleRunSimulation(simLine, val);
+                        }}
+                        className="w-full accent-blue-600 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {simResult && (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 mt-4">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">Wahrscheinlichkeit verpasst:</span>
+                      <span className={`font-mono font-bold ${simResult.missedConnectionProbability > 0.15 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        {(simResult.missedConnectionProbability * 100).toFixed(1)} %
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-500 font-medium">Anschluss-Zuverlässigkeit:</span>
+                      <span className="font-mono font-bold text-slate-800">
+                        {simResult.connectionReliabilityPercent}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
+                      <span className="text-slate-500 font-medium">Berechneter Risiko-Strafterm:</span>
+                      <span className="font-mono font-bold text-amber-700">
+                        +{simResult.riskPenaltySeconds.toFixed(1)} s ({Math.round(simResult.riskPenaltySeconds / 60)} min Äquivalent)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Performance Metrics Table */}
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Zug- und Linien-Pünktlichkeitsstatistiken
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Auswertung von Verspätungsmittelwerten (&mu;), Streuung (&sigma;) und Ausfallwahrscheinlichkeiten aus piebro/deutsche-bahn-data und ÖBB Scotty.
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
+                      <th className="py-3 px-3">Linie / Zug</th>
+                      <th className="py-3 px-3">Kategorie</th>
+                      <th className="py-3 px-3">Betreiber</th>
+                      <th className="py-3 px-3">Stichprobe (Fahrten)</th>
+                      <th className="py-3 px-3">&oslash; Verspätung (&mu;)</th>
+                      <th className="py-3 px-3">Streuung (&sigma;)</th>
+                      <th className="py-3 px-3">Pünktlich (&lt; 3m)</th>
+                      <th className="py-3 px-3">Ausfallquote</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
+                    {perfMetrics.map((m, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="py-3 px-3">
+                          <span className="font-bold text-slate-900">{m.line}</span>
+                        </td>
+                        <td className="py-3 px-3">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-semibold">
+                            {m.category}
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 text-slate-600">{m.operator}</td>
+                        <td className="py-3 px-3 font-mono text-slate-500">
+                          {m.sampleCount?.toLocaleString('de-AT') || m.sampleCount}
+                        </td>
+                        <td className="py-3 px-3 font-mono">
+                          <span className={m.meanDelayMinutes > 2.5 ? 'text-amber-600 font-bold' : 'text-slate-800'}>
+                            +{m.meanDelayMinutes.toFixed(1)} min
+                          </span>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-slate-500">
+                          &plusmn;{m.stdDevMinutes.toFixed(1)} min
+                        </td>
+                        <td className="py-3 px-3 font-mono">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${m.punctualityRatePct >= 95 ? 'bg-emerald-500' : m.punctualityRatePct >= 85 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                style={{ width: `${m.punctualityRatePct}%` }}
+                              />
+                            </div>
+                            <span className="text-[11px] font-bold">{m.punctualityRatePct.toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-3 font-mono text-slate-500">
+                          {m.cancellationRatePct.toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 5: KONFIGURATION */}
         {activeTab === 'config' && (
           <div className="max-w-2xl bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
             <div>

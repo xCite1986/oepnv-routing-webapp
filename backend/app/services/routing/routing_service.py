@@ -14,11 +14,12 @@ from ..ranking.ranking_engine import RankingEngine
 from ..explanations.explanation_engine import ExplanationEngine
 from ..realtime.realtime_adapter import RealtimeAdapter
 from ..otp.otp_client import OtpClient
+from ..analytics.punctuality_service import PunctualityPerformanceService
 
 class RoutingService:
     """
     Hauptdienst für ÖPNV-Routing (§18).
-    Orchestrierung: OTP / Netz-Engine -> Realtime-Anreicherung -> Ranking -> Explanation Engine.
+    Orchestrierung: OTP / Netz-Engine -> Zug-Performance / Pünktlichkeit -> Ranking nach Kostenfunktion -> Explanation Engine.
     """
 
     @classmethod
@@ -29,8 +30,31 @@ class RoutingService:
         # 2. Wenn OTP nicht läuft oder keine Kandidaten liefert, nutze integrierte Wien-Routenkandidaten
         candidates = otp_candidates if (otp_candidates and len(otp_candidates) > 0) else cls._generate_vienna_candidates(request)
 
-        # 3. Realtime Plausibility Check & Ranking nach minimaler realistischer Ankunftszeit (§18)
-        ranked = RankingEngine.rank_journeys(candidates)
+        # 3. Zug-Performance & Pünktlichkeit anwenden (piebro/deutsche-bahn-data & ÖBB)
+        for journey in candidates:
+            for leg in journey.legs:
+                if leg.type != "WALK":
+                    metric = PunctualityPerformanceService.get_metric(leg.line, leg.type)
+                    leg.punctualityPercent = metric.punctualityRatePct
+                    leg.expectedDelayMinutes = metric.meanDelayMinutes
+                    if not leg.delayMinutes and metric.meanDelayMinutes > 0:
+                        try:
+                            sched_start = datetime.fromisoformat(leg.startTime.replace("Z", "+00:00"))
+                            sched_end = datetime.fromisoformat(leg.endTime.replace("Z", "+00:00"))
+                            delay_delta = timedelta(minutes=metric.meanDelayMinutes)
+                            leg.fromStop.estimatedTime = (sched_start + delay_delta).isoformat()
+                            leg.toStop.estimatedTime = (sched_end + delay_delta).isoformat()
+                        except Exception:
+                            pass
+
+        # 4. Ranking nach Kostenfunktion (§18):
+        # cost = ETA + (alpha * transfer_penalty) + (beta * missed_connection_risk) + (gamma * disruption_risk)
+        pref = request.preferences
+        alpha = pref.alpha if pref else None
+        beta = pref.beta if pref else None
+        gamma = pref.gamma if pref else None
+
+        ranked = RankingEngine.rank_journeys(candidates, alpha=alpha, beta=beta, gamma=gamma)
 
         # 4. Regelbasierte Erklärungen für Top-Route & Alternativen generieren (§19)
         _, final_journeys = ExplanationEngine.generate_explanations(ranked)

@@ -44,6 +44,8 @@ class Leg(BaseModel):
     intermediateStops: Optional[List[IntermediateStop]] = None
     realtimeStatus: str = "ON_TIME" # ON_TIME, DELAYED, CANCELLED, STOP_SKIPPED, DISRUPTED, NO_DATA
     delayMinutes: int = 0
+    expectedDelayMinutes: Optional[float] = 0.0
+    punctualityPercent: Optional[float] = None
     isCancelled: Optional[bool] = False
     disruptionNotice: Optional[str] = None
     transferInfo: Optional[TransferInfo] = None
@@ -60,6 +62,19 @@ class AlternativeComparison(BaseModel):
     summaryText: str
     reasons: List[str]
 
+class CostBreakdown(BaseModel):
+    costScore: float
+    etaSeconds: float
+    etaMinutes: float
+    transferPenalty: float
+    missedConnectionRisk: float
+    disruptionRisk: float
+    alpha: float
+    beta: float
+    gamma: float
+    reliabilityPercent: int
+    summary: str
+
 class Journey(BaseModel):
     id: str
     recommended: bool = False
@@ -75,6 +90,9 @@ class Journey(BaseModel):
     totalDelayMinutes: int = 0
     hasCancellations: Optional[bool] = False
     hasDisruptions: Optional[bool] = False
+    costScore: Optional[float] = None
+    costBreakdown: Optional[CostBreakdown] = None
+    reliabilityPercent: Optional[int] = None
     explanation: JourneyExplanation
     comparisonWithRecommended: Optional[AlternativeComparison] = None
     legs: List[Leg]
@@ -84,6 +102,9 @@ class JourneySearchPreferences(BaseModel):
     maxTransfers: Optional[int] = 6
     wheelchair: Optional[bool] = False
     optimization: Optional[str] = "FASTEST" # FASTEST, LEAST_WALKING, FEWEST_TRANSFERS
+    alpha: Optional[float] = 1.0  # Gewichtung für Transfer-Penalty
+    beta: Optional[float] = 1.0   # Gewichtung für Anschlussrisiko
+    gamma: Optional[float] = 1.0  # Gewichtung für Störungsrisiko
 
 class JourneySearchRequest(BaseModel):
     from_: LocationPoint = Field(..., alias="from")

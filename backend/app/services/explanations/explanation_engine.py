@@ -84,6 +84,12 @@ class ExplanationEngine:
                 f"Die Umstiege sind mit ausreichend Zeitpuffer ({relaxed_transfers[0].transferInfo.bufferMinutes} Min.) gesichert."
             )
 
+        # Zuverlässigkeit & Pünktlichkeit gemäß Datensatz (piebro/deutsche-bahn-data & ÖBB)
+        if rec.reliabilityPercent and rec.reliabilityPercent >= 90:
+            rec_details.append(
+                f"Hohe Verbindungssicherheit ({rec.reliabilityPercent}% Zuverlässigkeit) basierend auf historischen Zug-Pünktlichkeitsdaten."
+            )
+
         if not rec_details:
             rec_details.append("Früheste verifizierte Ankunftszeit aller berechneten Optionen.")
 

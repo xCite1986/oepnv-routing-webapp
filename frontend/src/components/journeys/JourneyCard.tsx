@@ -5,7 +5,7 @@ import { RealtimeBadge } from '../common/RealtimeBadge';
 import { JourneyExplanation } from './JourneyExplanation';
 import { AlternativeComparison } from './AlternativeComparison';
 import { JourneyTimeline } from './JourneyTimeline';
-import { ChevronDown, ChevronUp, ArrowRight, Footprints, ArrowRightLeft, Sparkles, Map } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, Footprints, ArrowRightLeft, Sparkles, Map, ShieldCheck } from 'lucide-react';
 
 interface JourneyCardProps {
   journey: Journey;
@@ -60,11 +60,25 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
             <span>{journey.tagLabel}</span>
           </div>
 
-          {journey.realtime && (
-            <span className="text-[11px] font-medium opacity-90">
-              Live-Echtzeit geprüft
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {journey.reliabilityPercent && (
+              <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                journey.recommended
+                  ? 'bg-white/20 text-white'
+                  : journey.reliabilityPercent >= 90
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                <ShieldCheck className="w-3 h-3" />
+                <span>{journey.reliabilityPercent}% Zuverlässigkeit</span>
+              </span>
+            )}
+            {journey.realtime && (
+              <span className="text-[11px] font-medium opacity-90">
+                Live-Echtzeit geprüft
+              </span>
+            )}
+          </div>
         </div>
       )}
 
@@ -164,6 +178,45 @@ export const JourneyCard: React.FC<JourneyCardProps> = ({
               explanation={journey.explanation}
               isRecommended={journey.recommended}
             />
+          )}
+
+          {/* Cost Function Breakdown Card */}
+          {journey.costBreakdown && (
+            <div className="my-3 p-3.5 rounded-xl bg-slate-900 text-white text-xs border border-slate-800 shadow-xs">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-slate-200">Kosten- &amp; Risiko-Score</span>
+                  <span className="font-mono text-emerald-400 font-extrabold text-xs px-2 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/40">
+                    {journey.costBreakdown.costScore.toFixed(0)}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  &alpha;={journey.costBreakdown.alpha} &bull; &beta;={journey.costBreakdown.beta} &bull; &gamma;={journey.costBreakdown.gamma}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
+                <div className="bg-slate-800/80 p-2 rounded-lg">
+                  <div className="text-slate-400 text-[10px]">ETA (Dauer)</div>
+                  <div className="font-bold text-blue-300 font-mono">{journey.costBreakdown.etaMinutes} min</div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2 rounded-lg">
+                  <div className="text-slate-400 text-[10px]">Umstiegs-Penalty</div>
+                  <div className="font-bold text-amber-300 font-mono">+{Math.round(journey.costBreakdown.transferPenalty)}s</div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2 rounded-lg">
+                  <div className="text-slate-400 text-[10px]">Anschluss-Risiko</div>
+                  <div className="font-bold text-rose-300 font-mono">+{Math.round(journey.costBreakdown.missedConnectionRisk)}s</div>
+                </div>
+
+                <div className="bg-slate-800/80 p-2 rounded-lg">
+                  <div className="text-slate-400 text-[10px]">Störungs-Risiko</div>
+                  <div className="font-bold text-purple-300 font-mono">+{Math.round(journey.costBreakdown.disruptionRisk)}s</div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Alternative comparison box if not recommended */}

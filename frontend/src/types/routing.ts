@@ -71,6 +71,8 @@ export interface Leg {
   intermediateStops?: IntermediateStop[];
   realtimeStatus: RealtimeStatus;
   delayMinutes: number;
+  expectedDelayMinutes?: number;
+  punctualityPercent?: number;
   isCancelled?: boolean;
   disruptionNotice?: string;
   transferInfo?: TransferInfo;
@@ -90,6 +92,20 @@ export interface AlternativeComparison {
   reasons: string[];
 }
 
+export interface CostBreakdown {
+  costScore: number;
+  etaSeconds: number;
+  etaMinutes: number;
+  transferPenalty: number;
+  missedConnectionRisk: number;
+  disruptionRisk: number;
+  alpha: number;
+  beta: number;
+  gamma: number;
+  reliabilityPercent: number;
+  summary: string;
+}
+
 export interface Journey {
   id: string;
   recommended: boolean;
@@ -105,6 +121,9 @@ export interface Journey {
   totalDelayMinutes: number;
   hasCancellations?: boolean;
   hasDisruptions?: boolean;
+  costScore?: number;
+  costBreakdown?: CostBreakdown;
+  reliabilityPercent?: number;
   explanation: JourneyExplanation;
   comparisonWithRecommended?: AlternativeComparison;
   legs: Leg[];
@@ -117,6 +136,9 @@ export interface JourneySearchPreferences {
   maxTransfers?: number;
   wheelchair?: boolean;
   optimization?: 'FASTEST' | 'LEAST_WALKING' | 'FEWEST_TRANSFERS';
+  alpha?: number;  // Gewichtung Transfer-Penalty
+  beta?: number;   // Gewichtung Anschlussrisiko
+  gamma?: number;  // Gewichtung Störungsrisiko
 }
 
 export interface JourneySearchRequest {
@@ -143,4 +165,36 @@ export interface IncidentAlert {
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
   validFrom: string;
   validTo?: string;
+}
+
+export interface TrainPerformanceMetric {
+  line: string;
+  category: string;
+  operator: string;
+  sampleCount: number;
+  meanDelayMinutes: number;
+  stdDevMinutes: number;
+  punctualityRatePct: number;
+  cancellationRatePct: number;
+  sourceDataset: string;
+}
+
+export interface CostConfiguration {
+  alpha: number;
+  beta: number;
+  gamma: number;
+  baseTransferPenaltySec: number;
+  defaultHeadwayPenaltySec: number;
+  formula: string;
+}
+
+export interface RiskSimulationResult {
+  line: string;
+  category: string;
+  meanDelayMinutes: number;
+  stdDevMinutes: number;
+  bufferMinutes: number;
+  missedConnectionProbability: number;
+  connectionReliabilityPercent: number;
+  riskPenaltySeconds: number;
 }

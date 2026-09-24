@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     REALTIME_ENABLED: bool = True
     WIENER_LINIEN_API_KEY: str = ""
 
+    # Cost Function Parameters (§18, Punctuality & Risk Weighting)
+    # cost = ETA + (alpha * transfer_penalty) + (beta * missed_connection_risk) + (gamma * disruption_risk)
+    COST_ALPHA: float = 1.0
+    COST_BETA: float = 1.0
+    COST_GAMMA: float = 1.0
+    BASE_TRANSFER_PENALTY_SEC: float = 180.0
+    DEFAULT_HEADWAY_PENALTY_SEC: float = 900.0
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore"
