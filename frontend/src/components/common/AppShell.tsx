@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Compass, Info, Map, Sparkles, Database } from 'lucide-react';
+import { Compass, Info, Map, Sparkles, Database, AlertTriangle } from 'lucide-react';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -8,6 +8,7 @@ interface AppShellProps {
   onToggleMapMobile?: () => void;
   isBackendConnected?: boolean;
   onOpenAdmin?: () => void;
+  onOpenDisruptions?: () => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -17,6 +18,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   onToggleMapMobile,
   isBackendConnected = false,
   onOpenAdmin,
+  onOpenDisruptions,
 }) => {
   const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -73,6 +75,22 @@ export const AppShell: React.FC<AppShellProps> = ({
               >
                 <Map className="w-4 h-4 text-red-600" />
                 <span>{showMapOnMobile ? 'Liste' : 'Karte'}</span>
+              </button>
+            )}
+
+            {/* Live Disruptions Sidebar Button */}
+            {onOpenDisruptions && (
+              <button
+                type="button"
+                onClick={onOpenDisruptions}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-300 bg-amber-50/90 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition-colors shadow-2xs cursor-pointer"
+                title="Aktuelle Störungsmeldungen &amp; Verkehrslage anzeigen"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                <span className="hidden md:inline">Störungen</span>
+                <span className="w-4 h-4 rounded-full bg-amber-500 text-slate-950 text-[10px] font-extrabold flex items-center justify-center">
+                  1
+                </span>
               </button>
             )}
 

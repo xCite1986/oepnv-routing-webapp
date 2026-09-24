@@ -6,6 +6,7 @@ import { SearchForm } from './components/search/SearchForm';
 import { JourneyResults } from './components/journeys/JourneyResults';
 import { MapPanel } from './components/map/MapPanel';
 import { AdminDashboard } from './components/admin/AdminDashboard';
+import { DisruptionsSidebar } from './components/disruptions/DisruptionsSidebar';
 import { VIENNA_LOCATIONS } from './api/viennaLocations';
 
 export const App: React.FC = () => {
@@ -17,6 +18,7 @@ export const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [realtimeActive, setRealtimeActive] = useState<boolean>(true);
   const [disruptionSummary, setDisruptionSummary] = useState<string | undefined>();
+  const [showDisruptionsSidebar, setShowDisruptionsSidebar] = useState<boolean>(false);
   const [showMapOnMobile, setShowMapOnMobile] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
   const [lastRequest, setLastRequest] = useState<JourneySearchRequest | null>(null);
@@ -108,40 +110,52 @@ export const App: React.FC = () => {
   }
 
   return (
-    <AppShell
-      showMapOnMobile={showMapOnMobile}
-      onToggleMapMobile={() => setShowMapOnMobile(!showMapOnMobile)}
-      isBackendConnected={isBackendConnected}
-      onOpenAdmin={() => {
-        window.location.hash = '#admin';
-        setCurrentView('admin');
-      }}
-      mapNode={
-        <MapPanel
-          journey={selectedJourney}
-          selectedLeg={selectedLeg}
-          isCollapsible={showMapOnMobile}
-          onClose={() => setShowMapOnMobile(false)}
-        />
-      }
-    >
-      {/* Search Input Form */}
-      <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+    <>
+      <AppShell
+        showMapOnMobile={showMapOnMobile}
+        onToggleMapMobile={() => setShowMapOnMobile(!showMapOnMobile)}
+        isBackendConnected={isBackendConnected}
+        onOpenDisruptions={() => setShowDisruptionsSidebar(true)}
+        onOpenAdmin={() => {
+          window.location.hash = '#admin';
+          setCurrentView('admin');
+        }}
+        mapNode={
+          <MapPanel
+            journey={selectedJourney}
+            selectedLeg={selectedLeg}
+            isCollapsible={showMapOnMobile}
+            onClose={() => setShowMapOnMobile(false)}
+          />
+        }
+      >
+        {/* Search Input Form */}
+        <SearchForm onSearch={handleSearch} isLoading={isLoading} />
 
-      {/* Results List */}
-      <JourneyResults
-        journeys={journeys}
-        selectedJourneyId={selectedJourney?.id}
-        isLoading={isLoading}
-        error={error}
-        realtimeActive={realtimeActive}
+        {/* Results List */}
+        <JourneyResults
+          journeys={journeys}
+          selectedJourneyId={selectedJourney?.id}
+          isLoading={isLoading}
+          error={error}
+          realtimeActive={realtimeActive}
+          disruptionSummary={disruptionSummary}
+          onOpenDisruptions={() => setShowDisruptionsSidebar(true)}
+          onSelectJourney={handleSelectJourney}
+          onSelectLeg={handleSelectLeg}
+          onShowOnMap={handleShowOnMap}
+          onRetry={() => lastRequest && handleSearch(lastRequest)}
+        />
+      </AppShell>
+
+      {/* Ausklappbare Sidebar rechts für aktuelle Störungen */}
+      <DisruptionsSidebar
+        isOpen={showDisruptionsSidebar}
+        onClose={() => setShowDisruptionsSidebar(false)}
+        selectedJourney={selectedJourney}
         disruptionSummary={disruptionSummary}
-        onSelectJourney={handleSelectJourney}
-        onSelectLeg={handleSelectLeg}
-        onShowOnMap={handleShowOnMap}
-        onRetry={() => lastRequest && handleSearch(lastRequest)}
       />
-    </AppShell>
+    </>
   );
 };
 

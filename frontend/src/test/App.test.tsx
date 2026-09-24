@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import App from '../App';
 
@@ -51,6 +51,32 @@ describe('WienMobil Routing Frontend', () => {
     const resultsShort = searchViennaLocations('Traisengasse');
     expect(resultsShort.length).toBeGreaterThan(0);
     expect(resultsShort.some(r => r.label.includes('Wien Traisengasse'))).toBe(true);
+  });
+
+  it('opens and closes the live disruptions sidebar from the trigger button', async () => {
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('EMPFOHLEN')).toBeInTheDocument();
+    });
+
+    const openBtn = screen.getAllByRole('button', { name: /Störungen/i })[0];
+    expect(openBtn).toBeInTheDocument();
+    fireEvent.click(openBtn);
+
+    await waitFor(() => {
+      expect(screen.getByText('Störungen & Verkehrslage')).toBeInTheDocument();
+      expect(screen.getByText(/Auswirkung auf gewählte Route/i)).toBeInTheDocument();
+      expect(screen.getByText(/Alle Meldungen \(Wien & Umgebung\)/i)).toBeInTheDocument();
+    });
+
+    // Close button
+    const closeBtn = screen.getByTitle(/Sidebar schließen/i);
+    fireEvent.click(closeBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Störungen & Verkehrslage')).not.toBeInTheDocument();
+    });
   });
 });
 
