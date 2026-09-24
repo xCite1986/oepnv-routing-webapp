@@ -62,11 +62,97 @@ export interface LiveMonitorResponse {
 }
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+const ADMIN_TOKEN_KEY = 'oepnv_admin_token';
 
 export class AdminApiClient {
+  private static token: string | null = null;
+
+  static isAuthenticated(): boolean {
+    if (this.token) return true;
+    try {
+      const stored = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(ADMIN_TOKEN_KEY) : null;
+      if (stored) {
+        this.token = stored;
+        return true;
+      }
+    } catch {
+      // storage unavailable
+    }
+    return false;
+  }
+
+  static getToken(): string | null {
+    if (this.token) return this.token;
+    try {
+      return typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(ADMIN_TOKEN_KEY) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  static getAuthHeaders(): Record<string, string> {
+    const t = this.getToken();
+    if (t) {
+      return {
+        'Authorization': `Bearer ${t}`,
+        'X-Admin-Token': t,
+      };
+    }
+    return {};
+  }
+
+  static async login(password: string): Promise<{ success: boolean; token?: string; error?: string }> {
+    try {
+      const res = await fetch(`${API_BASE}/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        this.token = data.token;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(ADMIN_TOKEN_KEY, data.token);
+        }
+        return { success: true, token: data.token };
+      }
+      if (res.status === 401) {
+        return { success: false, error: 'Ungültiges Admin-Kennwort.' };
+      }
+    } catch {
+      // Fallback für Standalone- / Demo-Betrieb (z. B. auf Netlify ohne Backend-Container)
+      if (password === 'admin123' || password === 'admin') {
+        const demoToken = 'demo-admin-token-2026';
+        this.token = demoToken;
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.setItem(ADMIN_TOKEN_KEY, demoToken);
+        }
+        return { success: true, token: demoToken };
+      }
+      return { success: false, error: 'Ungültiges Kennwort. (Standard: admin123)' };
+    }
+    return { success: false, error: 'Authentifizierung fehlgeschlagen.' };
+  }
+
+  static logout(): void {
+    this.token = null;
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   static async getFeeds(): Promise<GtfsFeed[]> {
     try {
-      const res = await fetch(`${API_BASE}/admin/feeds`);
+      const res = await fetch(`${API_BASE}/admin/feeds`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -114,7 +200,13 @@ export class AdminApiClient {
 
   static async syncFeed(feedId: string): Promise<{ success: boolean; message: string }> {
     try {
-      const res = await fetch(`${API_BASE}/admin/feeds/${feedId}/sync`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/admin/feeds/${feedId}/sync`, {
+        method: 'POST',
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -128,7 +220,12 @@ export class AdminApiClient {
 
   static async runApiChecks(): Promise<ApiDiagnosticsResponse> {
     try {
-      const res = await fetch(`${API_BASE}/admin/api-checks`);
+      const res = await fetch(`${API_BASE}/admin/api-checks`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -167,7 +264,12 @@ export class AdminApiClient {
 
   static async getWienerLinienLive(rbl: number = 4114): Promise<LiveMonitorResponse> {
     try {
-      const res = await fetch(`${API_BASE}/admin/live-monitor/wiener-linien?rbl=${rbl}`);
+      const res = await fetch(`${API_BASE}/admin/live-monitor/wiener-linien?rbl=${rbl}`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -190,7 +292,12 @@ export class AdminApiClient {
 
   static async getOebbLive(evaId: string = "1190100", stationName: string = "Wien Hauptbahnhof"): Promise<LiveMonitorResponse> {
     try {
-      const res = await fetch(`${API_BASE}/admin/live-monitor/oebb?evaId=${evaId}&stationName=${encodeURIComponent(stationName)}`);
+      const res = await fetch(`${API_BASE}/admin/live-monitor/oebb?evaId=${evaId}&stationName=${encodeURIComponent(stationName)}`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -211,7 +318,12 @@ export class AdminApiClient {
 
   static async searchOebbStations(query: string): Promise<any[]> {
     try {
-      const res = await fetch(`${API_BASE}/admin/live-monitor/oebb-stations?q=${encodeURIComponent(query)}`);
+      const res = await fetch(`${API_BASE}/admin/live-monitor/oebb-stations?q=${encodeURIComponent(query)}`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -225,7 +337,12 @@ export class AdminApiClient {
 
   static async getConfig(): Promise<Record<string, any>> {
     try {
-      const res = await fetch(`${API_BASE}/admin/config`);
+      const res = await fetch(`${API_BASE}/admin/config`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -244,7 +361,12 @@ export class AdminApiClient {
 
   static async getTrainPerformance(): Promise<{ dataset: string; description: string; metrics: any[] }> {
     try {
-      const res = await fetch(`${API_BASE}/admin/train-performance`);
+      const res = await fetch(`${API_BASE}/admin/train-performance`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -265,7 +387,12 @@ export class AdminApiClient {
 
   static async getCostConfig(): Promise<any> {
     try {
-      const res = await fetch(`${API_BASE}/admin/cost-config`);
+      const res = await fetch(`${API_BASE}/admin/cost-config`, {
+        headers: this.getAuthHeaders()
+      });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -284,9 +411,15 @@ export class AdminApiClient {
     try {
       const res = await fetch(`${API_BASE}/admin/cost-config`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders()
+        },
         body: JSON.stringify(payload)
       });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -298,9 +431,15 @@ export class AdminApiClient {
     try {
       const res = await fetch(`${API_BASE}/admin/train-performance/simulate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.getAuthHeaders()
+        },
         body: JSON.stringify({ line, legType, bufferMinutes })
       });
+      if (res.status === 401) {
+        this.logout();
+      }
       if (res.ok) return await res.json();
     } catch {
       // Fallback
@@ -317,4 +456,3 @@ export class AdminApiClient {
     };
   }
 }
-

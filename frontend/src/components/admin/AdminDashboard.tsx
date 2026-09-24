@@ -24,6 +24,11 @@ import {
   TrendingUp,
   Sliders,
   Gauge,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 } from 'lucide-react';
 import { getLineColors } from '../../utils/formatters';
 
@@ -32,6 +37,12 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(AdminApiClient.isAuthenticated());
+  const [loginPassword, setLoginPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false);
+
   const [activeTab, setActiveTab] = useState<'gtfs' | 'diagnostics' | 'live' | 'performance' | 'config'>('gtfs');
   const [feeds, setFeeds] = useState<GtfsFeed[]>([]);
   const [diagnostics, setDiagnostics] = useState<ApiDiagnosticsResponse | null>(null);
@@ -141,12 +152,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
     }
   };
 
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginPassword.trim()) return;
+    setIsLoggingIn(true);
+    setLoginError(null);
+    try {
+      const res = await AdminApiClient.login(loginPassword.trim());
+      if (res.success) {
+        setIsAuthenticated(true);
+        setLoginPassword('');
+      } else {
+        setLoginError(res.error || 'Ungültiges Admin-Kennwort.');
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = () => {
+    AdminApiClient.logout();
+    setIsAuthenticated(false);
+    setLoginPassword('');
+    setLoginError(null);
+  };
+
   useEffect(() => {
-    loadFeeds();
-    runChecks();
-    loadLiveMonitors();
-    loadPerformanceAndCost();
-  }, []);
+    if (isAuthenticated) {
+      loadFeeds();
+      runChecks();
+      loadLiveMonitors();
+      loadPerformanceAndCost();
+    }
+  }, [isAuthenticated]);
 
   const handleSyncFeed = async (feedId: string) => {
     setIsSyncingFeed(feedId);
@@ -164,6 +202,87 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
     if (!bytes) return '0 MB';
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl border border-slate-200 p-8 text-slate-800">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-xl shadow-red-500/25">
+            <Lock className="w-8 h-8" />
+          </div>
+
+          <h2 className="text-xl font-black text-slate-900 text-center tracking-tight">
+            Datenpflege &amp; Admin
+          </h2>
+          <p className="text-xs text-slate-500 text-center mt-1">
+            Kennwortgeschützter Administrationsbereich
+          </p>
+
+          <div className="mt-4 p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600 leading-relaxed text-center">
+            Zugriff auf GTFS-Fahrplandatenstände, Echtzeit-Schnittstellen (Wiener Linien &amp; ÖBB Scotty) und Kostenfunktions-Kalibrierung.
+          </div>
+
+          <form onSubmit={handleLogin} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="admin-password-input" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Admin-Kennwort
+              </label>
+              <div className="relative">
+                <input
+                  id="admin-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  placeholder="Kennwort eingeben..."
+                  autoFocus
+                  className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  title={showPassword ? 'Kennwort verbergen' : 'Kennwort anzeigen'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {loginError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoggingIn || !loginPassword.trim()}
+              className="w-full py-2.5 px-4 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white text-xs font-bold rounded-xl shadow-md shadow-red-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Unlock className="w-4 h-4" />
+              <span>{isLoggingIn ? 'Überprüfe Kennwort...' : 'Entsperren & Anmelden'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onBackToApp}
+              className="w-full py-2 px-4 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors flex items-center justify-center gap-1.5"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Zurück zum Routenplaner</span>
+            </button>
+          </form>
+
+          <div className="mt-6 pt-4 border-t border-slate-100 text-center">
+            <span className="text-[11px] text-slate-400">
+              Standard-Kennwort: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-slate-700 font-mono">admin123</code>
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans text-slate-800 antialiased flex flex-col">
@@ -186,7 +305,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
                 <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
                   ÖPNV Datenpflege &amp; API-Konsole
                 </h1>
-                <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-slate-800 text-white tracking-wider">
+                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 tracking-wider flex items-center gap-1 border border-emerald-200">
+                  <ShieldCheck className="w-3 h-3 text-emerald-600" />
                   Admin
                 </span>
               </div>
@@ -208,6 +328,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingFeeds || isCheckingApis ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Alles aktualisieren</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-700 hover:bg-red-100 transition-colors shadow-2xs"
+              title="Admin-Sitzung sperren & abmelden"
+            >
+              <Lock className="w-3.5 h-3.5 text-red-600" />
+              <span className="hidden sm:inline">Abmelden</span>
             </button>
           </div>
         </div>

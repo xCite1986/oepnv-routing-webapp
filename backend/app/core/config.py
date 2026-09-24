@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     BASE_TRANSFER_PENALTY_SEC: float = 180.0
     DEFAULT_HEADWAY_PENALTY_SEC: float = 900.0
 
+    # Admin Authentication & Security
+    ADMIN_PASSWORD: str = "admin123"
+    ADMIN_SESSION_TOKEN: str = "oepnv-wien-admin-secure-token-2026"
+
     model_config = {
         "env_file": ".env",
         "extra": "ignore"
