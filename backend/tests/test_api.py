@@ -106,3 +106,41 @@ async def test_incidents_endpoint():
         assert response.status_code == 200
         incidents = response.json()
         assert len(incidents) > 0
+
+@pytest.mark.asyncio
+async def test_journeys_search_egon_friedell_to_salzburg():
+    transport = ASGITransport(app=app)
+    payload = {
+        "from": {
+            "lat": 48.274006,
+            "lon": 16.436416,
+            "label": "Wien Egon-Friedell-Gasse"
+        },
+        "to": {
+            "lat": 47.813057,
+            "lon": 13.045856,
+            "label": "Salzburg Hbf"
+        },
+        "dateTime": "2026-09-25T08:06:00",
+        "timeMode": "DEPARTURE",
+        "preferences": {
+            "maxWalkingDistance": 1500,
+            "transferSpeed": "SLOW"
+        }
+    }
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/api/v1/journeys/search", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert "journeys" in data
+        assert len(data["journeys"]) > 0
+
+        # Check that top journey has a realistic duration for Vienna -> Salzburg (> 2.5 hours)
+        rec = data["journeys"][0]
+        assert rec["durationSeconds"] >= 150 * 60  # At least 2.5 hours
+
+        # Verify that S7 is NOT routed from Vienna directly to Salzburg in 38 minutes
+        for j in data["journeys"]:
+            for leg in j["legs"]:
+                if leg.get("line") == "S7":
+                    assert "Salzburg" not in leg["toStop"]["name"]

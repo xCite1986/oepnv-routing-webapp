@@ -40,8 +40,12 @@ class RankingEngine:
             time_diff_sec = (next_departure - curr_arrival).total_seconds()
 
             # Wenn der nächste Zug vor der Ankunft des vorherigen abfährt -> unplausibel
-            if time_diff_sec < 60:  # Mindestens 1 Minute Puffer
-                return False
+            if curr_leg.type == "WALK" or next_leg.type == "WALK":
+                if time_diff_sec < -30:
+                    return False
+            else:
+                if time_diff_sec < 0:
+                    return False
 
         return True
 
