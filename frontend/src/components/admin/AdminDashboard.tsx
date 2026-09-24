@@ -853,16 +853,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBackToApp }) =
                   </div>
                 </div>
 
-                {/* Mathematical Formula Display */}
-                <div className="p-3.5 rounded-xl bg-slate-900 text-slate-100 font-mono text-xs sm:text-sm border border-slate-800 flex items-center justify-between shadow-inner overflow-x-auto">
-                  <span className="text-emerald-400 font-bold">cost</span>
-                  <span className="text-slate-500 mx-1">=</span>
+                {/* Mathematical Formula Display - matching red theme */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-red-950/90 via-slate-900 to-rose-950/90 text-slate-100 font-mono text-xs sm:text-sm border border-red-900/60 flex items-center justify-between shadow-inner overflow-x-auto">
+                  <span className="text-rose-400 font-bold">cost</span>
+                  <span className="text-red-300/60 mx-1">=</span>
                   <span className="text-blue-300">ETA</span>
-                  <span className="text-slate-500 mx-1">+</span>
+                  <span className="text-red-300/60 mx-1">+</span>
                   <span className="text-amber-300 font-bold">α × transfer_penalty</span>
-                  <span className="text-slate-500 mx-1">+</span>
+                  <span className="text-red-300/60 mx-1">+</span>
                   <span className="text-rose-300 font-bold">beta × missed_connection_risk</span>
-                  <span className="text-slate-500 mx-1">+</span>
+                  <span className="text-red-300/60 mx-1">+</span>
                   <span className="text-purple-300 font-bold">gamma × disruption_risk</span>
                 </div>
 
