@@ -21,6 +21,16 @@ async def test_locations_search():
         assert any("Stephansplatz" in loc["label"] for loc in results)
 
 @pytest.mark.asyncio
+async def test_locations_search_traisengasse():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.get("/api/v1/locations/search?q=Wien Traisengasse")
+        assert response.status_code == 200
+        results = response.json()
+        assert len(results) > 0
+        assert any("Traisengasse" in loc["label"] for loc in results)
+
+@pytest.mark.asyncio
 async def test_journeys_search():
     transport = ASGITransport(app=app)
     payload = {

@@ -41,4 +41,16 @@ describe('WienMobil Routing Frontend', () => {
       expect(screen.getByText('WENIGER ZU FUSS')).toBeInTheDocument();
     });
   });
+
+  it('finds Wien Traisengasse when searching stations in frontend autocomplete', async () => {
+    const { searchViennaLocations } = await import('../api/viennaLocations');
+    const results = searchViennaLocations('Wien Traisengasse');
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some(r => r.label.includes('Wien Traisengasse'))).toBe(true);
+
+    const resultsShort = searchViennaLocations('Traisengasse');
+    expect(resultsShort.length).toBeGreaterThan(0);
+    expect(resultsShort.some(r => r.label.includes('Wien Traisengasse'))).toBe(true);
+  });
 });
+

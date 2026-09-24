@@ -2,11 +2,13 @@ from typing import List
 import httpx
 from ...schemas.location import LocationPoint
 from .vienna_stops import VIENNA_STOPS
+from ..realtime.oebb_api import OebbApiClient
 
 class GeocodingService:
     """
     Austauschbarer Geocoding-Service (§3).
     Sucht Haltestellen, Bahnhöfe, POIs und Adressen im Großraum Wien.
+    Kombiniert lokalen Wiener Haltestellenkatalog, ÖBB Scotty HAFAS Gateway und Photon/OSM.
     """
 
     @classmethod
@@ -15,19 +17,42 @@ class GeocodingService:
             return [LocationPoint(**stop) for stop in VIENNA_STOPS[:limit]]
 
         q_clean = query.lower().strip()
+        matches: List[LocationPoint] = []
+        seen_labels = set()
 
-        # 1. Lokale Haltestellensuche (Sofortige Treffer)
-        local_matches: List[LocationPoint] = []
+        # 1. Lokale Haltestellensuche (Sofortige Treffer ohne Latenz)
         for stop in VIENNA_STOPS:
             label = stop["label"].lower()
             muni = stop.get("municipality", "").lower()
             if q_clean in label or q_clean in muni:
-                local_matches.append(LocationPoint(**stop))
+                loc = LocationPoint(**stop)
+                matches.append(loc)
+                seen_labels.add(loc.label.lower())
 
-        if len(local_matches) >= 3:
-            return local_matches[:limit]
+        # 2. ÖBB Scotty / HAFAS Haltestellen- und Bahnhofssuche (Österreich-weit, inkl. Wien Traisengasse etc.)
+        if len(query.strip()) >= 2:
+            try:
+                oebb_results = await OebbApiClient.search_stations(query)
+                for s in oebb_results:
+                    label = s.get("name", "")
+                    if label and label.lower() not in seen_labels:
+                        loc = LocationPoint(
+                            lat=s["lat"],
+                            lon=s["lon"],
+                            label=label,
+                            type="STATION",
+                            stopId=s.get("evaId"),
+                            municipality="Wien" if "wien" in label.lower() else "Österreich"
+                        )
+                        matches.append(loc)
+                        seen_labels.add(label.lower())
+            except Exception:
+                pass
 
-        # 2. Ergänzende Suche via Photon (OpenStreetMap, kostenlos, keine API-Key Pflicht)
+        if len(matches) >= limit:
+            return matches[:limit]
+
+        # 3. Ergänzende Suche via Photon (OpenStreetMap für Adressen & POIs)
         try:
             async with httpx.AsyncClient(timeout=2.0) as client:
                 res = await client.get(
@@ -41,7 +66,6 @@ class GeocodingService:
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    photon_results = []
                     for feature in data.get("features", []):
                         props = feature.get("properties", {})
                         coords = feature.get("geometry", {}).get("coordinates", [0, 0])
@@ -49,19 +73,17 @@ class GeocodingService:
                         street = props.get("street", "")
                         city = props.get("city", "Wien")
                         full_label = f"{name or street}, {city}".strip(", ")
-                        
-                        photon_results.append(
-                            LocationPoint(
+                        if full_label and full_label.lower() not in seen_labels:
+                            loc = LocationPoint(
                                 lat=coords[1],
                                 lon=coords[0],
-                                label=full_label or "Standort in Wien",
+                                label=full_label,
                                 type="ADDRESS",
                                 municipality=city
                             )
-                        )
-                    combined = local_matches + [r for r in photon_results if r.label not in [m.label for m in local_matches]]
-                    return combined[:limit]
+                            matches.append(loc)
+                            seen_labels.add(full_label.lower())
         except Exception:
             pass
 
-        return local_matches[:limit]
+        return matches[:limit]
