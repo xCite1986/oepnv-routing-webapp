@@ -140,10 +140,10 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
               {/* Y-Axis Time Scale Ruler (Links) */}
               <div
                 className="w-8 sm:w-10 shrink-0 flex flex-col justify-between select-none relative pt-24"
-                style={{ height: `${chartHeightPx + 110}px` }}
+                style={{ height: `${chartHeightPx + 150}px` }}
               >
                 {axisTicks.map((tick) => {
-                  const topPx = 95 + Math.round(tick * pxPerMin);
+                  const topPx = 130 + Math.round(tick * pxPerMin);
                   return (
                     <div
                       key={`axis-${tick}`}
@@ -163,7 +163,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
               <div className="relative flex-1 flex items-start gap-1 sm:gap-2 w-full">
                 {/* Horizontal Guideline Dashes across columns for each tick */}
                 {axisTicks.map((tick) => {
-                  const topPx = 95 + Math.round(tick * pxPerMin);
+                  const topPx = 130 + Math.round(tick * pxPerMin);
                   return (
                     <div
                       key={`grid-${tick}`}
@@ -203,9 +203,9 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                           : 'bg-white border-slate-200 shadow-2xs hover:border-red-300 hover:shadow-md opacity-100'
                       }`}
                     >
-                      {/* Compact Column Header */}
+                      {/* Compact Column Header - Fixed 94px height */}
                       <div
-                        className={`p-1.5 sm:p-2.5 border-b text-center transition-colors ${
+                        className={`h-[94px] p-2 border-b flex flex-col items-center justify-center text-center transition-colors ${
                           isSelected
                             ? 'bg-gradient-to-b from-red-50 via-rose-50 to-white border-red-200'
                             : 'bg-slate-50/80 border-slate-200'
@@ -241,10 +241,10 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                         </div>
                       </div>
 
-                      {/* Proportional Vertical Gantt Bar Area */}
-                      <div className="p-1.5 sm:p-2.5 flex flex-col items-center justify-start bg-slate-50/40">
-                        {/* Start Station Dot */}
-                        <div className="flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-bold text-slate-700 mb-1 max-w-full px-0.5">
+                      {/* Proportional Vertical Gantt Bar Area - starts at y=130px */}
+                      <div className="px-1.5 pt-2 pb-2.5 flex flex-col items-center justify-start bg-slate-50/40">
+                        {/* Start Station Dot - 22px height + 6px margin = 28px */}
+                        <div className="h-[22px] flex items-center justify-center gap-1 text-[8px] sm:text-[9px] font-bold text-slate-700 max-w-full px-0.5 mb-1.5">
                           <span className="w-1.5 h-1.5 rounded-full bg-slate-800 shrink-0" />
                           <span className="truncate">{journey.legs[0]?.fromStop.name}</span>
                         </div>
@@ -252,7 +252,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                         {/* Stacked Vertical Gantt Bar */}
                         <div
                           style={{ height: `${barHeight}px` }}
-                          className="w-11 sm:w-14 md:w-16 rounded-xl border border-slate-300/80 shadow-xs overflow-hidden flex flex-col transition-all my-1 shrink-0"
+                          className="w-11 sm:w-14 md:w-16 rounded-xl border border-slate-300/80 shadow-xs overflow-hidden flex flex-col transition-all mb-1 shrink-0"
                         >
                           {journey.legs.map((leg, legIdx) => {
                             const isWalk = leg.type === 'WALK';
