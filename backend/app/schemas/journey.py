@@ -102,6 +102,7 @@ class JourneySearchPreferences(BaseModel):
     maxTransfers: Optional[int] = 6
     wheelchair: Optional[bool] = False
     optimization: Optional[str] = "FASTEST" # FASTEST, LEAST_WALKING, FEWEST_TRANSFERS
+    transferSpeed: Optional[str] = "NORMAL" # SLOW, NORMAL, FAST
     alpha: Optional[float] = 1.0  # Gewichtung für Transfer-Penalty
     beta: Optional[float] = 1.0   # Gewichtung für Anschlussrisiko
     gamma: Optional[float] = 1.0  # Gewichtung für Störungsrisiko

@@ -65,6 +65,40 @@ async def test_journeys_search():
         assert len(rec["explanation"]["details"]) > 0
 
 @pytest.mark.asyncio
+async def test_journeys_search_with_transfer_speed_profiles():
+    transport = ASGITransport(app=app)
+    payload_slow = {
+        "from": {"lat": 48.20849, "lon": 16.37208, "label": "Stephansplatz, Wien"},
+        "to": {"lat": 48.1108, "lon": 16.569, "label": "Flughafen Wien (Schwechat)"},
+        "dateTime": "2026-09-24T14:30:00",
+        "timeMode": "DEPARTURE",
+        "preferences": {
+            "maxWalkingDistance": 1500,
+            "transferSpeed": "SLOW"
+        }
+    }
+    payload_fast = {
+        "from": {"lat": 48.20849, "lon": 16.37208, "label": "Stephansplatz, Wien"},
+        "to": {"lat": 48.1108, "lon": 16.569, "label": "Flughafen Wien (Schwechat)"},
+        "dateTime": "2026-09-24T14:30:00",
+        "timeMode": "DEPARTURE",
+        "preferences": {
+            "maxWalkingDistance": 1500,
+            "transferSpeed": "FAST"
+        }
+    }
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res_slow = await client.post("/api/v1/journeys/search", json=payload_slow)
+        assert res_slow.status_code == 200
+        data_slow = res_slow.json()
+        assert len(data_slow["journeys"]) > 0
+
+        res_fast = await client.post("/api/v1/journeys/search", json=payload_fast)
+        assert res_fast.status_code == 200
+        data_fast = res_fast.json()
+        assert len(data_fast["journeys"]) > 0
+
+@pytest.mark.asyncio
 async def test_incidents_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:

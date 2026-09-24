@@ -79,5 +79,29 @@ describe('WienMobil Routing Frontend', () => {
       expect(screen.queryByText('Störungen & Verkehrslage')).not.toBeInTheDocument();
     });
   });
+
+  it('renders permanently visible options with transfer speed selection (Langsam, Normal, Schnell)', () => {
+    render(<App />);
+
+    // Header should be "Optionen" without "(max. Fußweg)"
+    expect(screen.getByText('Optionen')).toBeInTheDocument();
+    expect(screen.queryByText(/Optionen \(max\. Fußweg\)/i)).not.toBeInTheDocument();
+
+    // Speed options should be present as buttons
+    expect(screen.getByRole('button', { name: /Langsam/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Normal/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Schnell/i })).toBeInTheDocument();
+    expect(screen.getByText('Maximaler Fußweg:')).toBeInTheDocument();
+
+    // Select "Langsam"
+    const slowBtn = screen.getByRole('button', { name: /Langsam/i });
+    fireEvent.click(slowBtn);
+    expect(screen.getByText(/Gepäck oder Rollstuhl/i)).toBeInTheDocument();
+
+    // Select "Schnell"
+    const fastBtn = screen.getByRole('button', { name: /Schnell/i });
+    fireEvent.click(fastBtn);
+    expect(screen.getByText(/Sportliches Tempo/i)).toBeInTheDocument();
+  });
 });
 

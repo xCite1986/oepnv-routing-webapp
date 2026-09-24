@@ -131,11 +131,14 @@ export interface Journey {
 
 export type TimeMode = 'NOW' | 'DEPARTURE' | 'ARRIVAL';
 
+export type TransferSpeed = 'SLOW' | 'NORMAL' | 'FAST';
+
 export interface JourneySearchPreferences {
   maxWalkingDistance?: number;
   maxTransfers?: number;
   wheelchair?: boolean;
   optimization?: 'FASTEST' | 'LEAST_WALKING' | 'FEWEST_TRANSFERS';
+  transferSpeed?: TransferSpeed;
   alpha?: number;  // Gewichtung Transfer-Penalty
   beta?: number;   // Gewichtung Anschlussrisiko
   gamma?: number;  // Gewichtung Störungsrisiko

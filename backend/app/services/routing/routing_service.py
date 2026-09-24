@@ -50,9 +50,17 @@ class RoutingService:
         # 4. Ranking nach Kostenfunktion (§18):
         # cost = ETA + (alpha * transfer_penalty) + (beta * missed_connection_risk) + (gamma * disruption_risk)
         pref = request.preferences
-        alpha = pref.alpha if pref else None
-        beta = pref.beta if pref else None
-        gamma = pref.gamma if pref else None
+        alpha = pref.alpha if pref and pref.alpha is not None else None
+        beta = pref.beta if pref and pref.beta is not None else None
+        gamma = pref.gamma if pref and pref.gamma is not None else None
+
+        # Berücksichtigung des Geschwindigkeitsprofils (Langsam / Normal / Schnell)
+        if pref and pref.transferSpeed == "SLOW":
+            alpha = (alpha if alpha is not None else 1.0) * 1.5
+            beta = (beta if beta is not None else 1.0) * 1.6
+        elif pref and pref.transferSpeed == "FAST":
+            alpha = (alpha if alpha is not None else 1.0) * 0.7
+            beta = (beta if beta is not None else 1.0) * 0.6
 
         ranked = RankingEngine.rank_journeys(candidates, alpha=alpha, beta=beta, gamma=gamma)
 
