@@ -239,13 +239,6 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                             ? 'Direktfahrt'
                             : `${journey.transferCount} ${journey.transferCount === 1 ? 'Umstieg' : 'Umst.'}`}
                         </div>
-
-                        {isSelected && (
-                          <div className="mt-1.5 inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-extrabold text-red-700 bg-red-100/90 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                            <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
-                            <span>Ausgewählt</span>
-                          </div>
-                        )}
                       </div>
 
                       {/* Proportional Vertical Gantt Bar Area */}
@@ -336,14 +329,17 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                       </div>
 
                       {/* Clickable Column Footer */}
-                      <div className="p-1 sm:p-1.5 border-t border-slate-100 bg-white text-center mt-auto">
-                        <span
-                          className={`text-[9px] sm:text-[10px] font-bold whitespace-nowrap ${
-                            isSelected ? 'text-red-600' : 'text-slate-400 group-hover:text-slate-700'
-                          }`}
-                        >
-                          {isSelected ? '✓ Gewählt' : 'Auswählen'}
-                        </span>
+                      <div className="p-1 sm:p-1.5 border-t border-slate-100 bg-white text-center mt-auto flex items-center justify-center min-h-[28px]">
+                        {isSelected ? (
+                          <div className="inline-flex items-center gap-1 text-[8px] sm:text-[9px] font-extrabold text-red-700 bg-red-100/90 px-2 py-0.5 rounded-full whitespace-nowrap">
+                            <CheckCircle2 className="w-2.5 h-2.5 shrink-0" />
+                            <span>Gewählt</span>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] sm:text-[10px] font-semibold text-slate-400 group-hover:text-slate-700 whitespace-nowrap">
+                            Auswählen
+                          </span>
+                        )}
                       </div>
                     </div>
                   );
