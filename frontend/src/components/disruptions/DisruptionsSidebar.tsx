@@ -66,16 +66,49 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
   const journeyTransitLegs = selectedJourney?.legs.filter((l) => l.type !== 'WALK' && l.line) || [];
   const journeyLines = Array.from(new Set(journeyTransitLegs.map((l) => l.line!)));
 
-  // Störungen aufteilen: Welche betreffen die Route, welche die Umgebung?
-  const routeIncidents = incidents.filter((inc) => {
-    const matchesLine = inc.lines.some((l) => journeyLines.includes(l));
+  // 1. Direkt aus den Teilstrecken der gewählten Route (z.B. ÖBB HAFAS Meldungen für genau diesen Zug)
+  const legDisruptions: IncidentAlert[] = (selectedJourney?.legs || [])
+    .filter((l) => l.disruptionNotice)
+    .map((l, idx) => ({
+      id: `leg-disr-${l.id || idx}`,
+      title: `${l.line || 'Zug'}: Echtzeitmeldung`,
+      description: l.disruptionNotice!,
+      lines: l.line ? [l.line] : ['Route'],
+      severity: 'WARNING' as const,
+      validFrom: l.startTime,
+    }));
+
+  // 2. Aus dem allgemeinen Live-Feed (Wiener Linien & ÖBB) nach passender Linie filtern
+  const matchedFromFeed = incidents.filter((inc) => {
+    const matchesLine = inc.lines.some((incLine) => {
+      const cleanInc = incLine.replace(/^(bus|linie|zug)\s*/i, '').trim().toUpperCase();
+      return journeyLines.some((jl) => {
+        const cleanJl = jl.replace(/^(bus|linie|zug)\s*/i, '').trim().toUpperCase();
+        return cleanInc === cleanJl || cleanJl.includes(cleanInc) || cleanInc.includes(cleanJl);
+      });
+    });
+
+    const mentionsInText = journeyLines.some((jl) => {
+      const clean = jl.replace(/^(bus|linie|zug)\s*/i, '').trim();
+      if (!clean || clean.length < 2) return false;
+      const regex = new RegExp(`\\b${clean}\\b`, 'i');
+      return regex.test(inc.title) || regex.test(inc.description);
+    });
+
     const isStammstrecke =
       (inc.title.includes('Stammstrecke') || inc.description.includes('Stammstrecke')) &&
       journeyLines.some((l) => l.startsWith('S') || l.startsWith('REX'));
-    return matchesLine || isStammstrecke;
+
+    return matchesLine || mentionsInText || isStammstrecke;
   });
 
-  const otherIncidents = incidents.filter((inc) => !routeIncidents.includes(inc));
+  // Kombinieren ohne doppelte Meldungen
+  const routeIncidents = [
+    ...legDisruptions,
+    ...matchedFromFeed.filter((inc) => !legDisruptions.some((ld) => ld.description === inc.description)),
+  ];
+
+  const otherIncidents = incidents.filter((inc) => !routeIncidents.some((r) => r.id === inc.id));
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -104,7 +137,7 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Echtzeitmeldungen für deine Verbindung &amp; Wien
+                  Echtzeitmeldungen für deine Verbindung, Wien &amp; ÖBB
                 </p>
               </div>
             </div>
@@ -217,7 +250,7 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
               <div className="flex items-center justify-between mb-2.5">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                   <Radio className="w-3.5 h-3.5 text-slate-500" />
-                  <span>Alle Meldungen (Wien &amp; Umgebung)</span>
+                  <span>Alle Meldungen (Wien &amp; Umgebung) &ndash; ÖPNV &amp; Bahn Live</span>
                 </h4>
                 <span className="text-[11px] text-slate-400 font-medium">
                   {incidents.length} aktiv
@@ -231,7 +264,7 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
                 </div>
               ) : incidents.length === 0 ? (
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-500 text-center">
-                  Aktuell keine Störungen im Wiener Netz gemeldet.
+                  Aktuell keine Störungen gemeldet.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -288,7 +321,7 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
                           </span>
                         </div>
                         <span className="text-[10px] text-slate-400 font-mono">
-                          Wiener Linien / ÖBB Live
+                          {inc.id.startsWith('wl-') ? 'Wiener Linien Live' : inc.id.startsWith('oebb-') ? 'ÖBB Live' : 'ÖPNV Live'}
                         </span>
                       </div>
                     </div>

@@ -2,6 +2,7 @@ import { JourneySearchRequest, JourneySearchResponse, LocationPoint, IncidentAle
 import { createMockViennaJourneys, MOCK_INCIDENTS } from './mockData';
 import { searchViennaLocations } from './viennaLocations';
 import { ScottyHafasClient } from './scottyHafasClient';
+import { RealtimeIncidentsClient } from './realtimeIncidentsClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -166,14 +167,35 @@ export class TransitApiClient {
   }
 
   static async getIncidents(): Promise<IncidentAlert[]> {
+    // 1. Python FastAPI Backend (falls lokal aktiv)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
     try {
-      const res = await fetch(`${API_BASE}/incidents`);
-      if (res.ok) {
-        return await res.json();
+      const res = await fetch(`${API_BASE}/incidents`, { signal: controller.signal });
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data;
+        }
       }
     } catch {
-      // Fallback
+      // Backend offline oder auf Netlify
+    } finally {
+      clearTimeout(timeoutId);
     }
+
+    // 2. Direkte Live-Abfrage an Wiener Linien (OGD Realtime) & ÖBB Scotty (HAFAS HimSearch)
+    try {
+      const liveAlerts = await RealtimeIncidentsClient.fetchAllLiveIncidents();
+      if (liveAlerts && liveAlerts.length > 0) {
+        return liveAlerts;
+      }
+    } catch (liveErr) {
+      console.warn('Live-Abfrage der Störungen fehlgeschlagen, verwende Fallback:', liveErr);
+    }
+
+    // 3. Fallback
     return MOCK_INCIDENTS;
   }
 }

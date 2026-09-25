@@ -284,7 +284,30 @@ export class ScottyHafasClient {
               }
             }
 
-            const hasDisr = Boolean(jny.himIdL || jny.msgL);
+            let legDisruptionNotice: string | undefined = undefined;
+            const legHimMsgs: string[] = [];
+            if (Array.isArray(jny.msgL)) {
+              for (const m of jny.msgL) {
+                if (m.type === 'HIM' && typeof m.himX === 'number') {
+                  const himObj = resData.common?.himL?.[m.himX];
+                  if (himObj) {
+                    const text = himObj.head
+                      ? himObj.text
+                        ? `${himObj.head}: ${himObj.text}`
+                        : himObj.head
+                      : himObj.text;
+                    if (text) {
+                      legHimMsgs.push(text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+                    }
+                  }
+                }
+              }
+            }
+            if (legHimMsgs.length > 0) {
+              legDisruptionNotice = legHimMsgs[0];
+            }
+
+            const hasDisr = Boolean(jny.himIdL || legHimMsgs.length > 0);
             if (hasDisr) hasDisruptions = true;
 
             const legDur = Math.max(60, Math.round((arrDtSched.getTime() - depDtSched.getTime()) / 1000));
@@ -351,6 +374,7 @@ export class ScottyHafasClient {
               intermediateStops,
               realtimeStatus,
               delayMinutes: legDelay,
+              disruptionNotice: legDisruptionNotice,
               transferInfo,
               coordinates: [
                 [depLon || request.from.lon, depLat || request.from.lat],
@@ -405,6 +429,13 @@ export class ScottyHafasClient {
           `Verbindung mit ${linesSummary || 'ÖBB Schienenverkehr'} (${Math.floor(durSec / 3600)}h ${Math.round((durSec % 3600) / 60)} min).`,
           totalDelay > 0 ? `Aktuell ca. +${totalDelay} min Verzögerung im Streckennetz erfasst.` : 'Verbindung laut ÖBB Scotty pünktlich.',
         ];
+
+        const allLegDisruptions = legs
+          .filter((l) => l.disruptionNotice)
+          .map((l) => `${l.line || 'Zug'}: ${l.disruptionNotice}`);
+        if (allLegDisruptions.length > 0) {
+          details.push(`Echtzeithinweis: ${allLegDisruptions[0]}`);
+        }
 
         journeys.push({
           id: `journey-scotty-${idx}`,
