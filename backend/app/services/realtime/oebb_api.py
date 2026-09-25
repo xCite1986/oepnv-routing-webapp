@@ -42,7 +42,7 @@ class OebbApiClient:
 
         try:
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OMATA/1.0"}
-            async with httpx.AsyncClient(timeout=3.5, headers=headers) as client:
+            async with httpx.AsyncClient(timeout=6.0, headers=headers) as client:
                 res = await client.get(
                     f"{cls.SCOTTY_GETSTOP_URL}?REQ0JourneyStopsS0A=1&REQ0JourneyStopsB=12&S={query}&js=true"
                 )
@@ -294,7 +294,7 @@ class OebbApiClient:
             }
 
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OMATA/1.0"}
-            async with httpx.AsyncClient(timeout=8.0, headers=headers) as client:
+            async with httpx.AsyncClient(timeout=30.0, headers=headers) as client:
                 res = await client.post("https://fahrplan.oebb.at/bin/mgate.exe", json=payload)
                 if res.status_code != 200:
                     return None

@@ -429,10 +429,29 @@ class RoutingService:
         dest_name = req.to.label
 
         if dist_km > 50:
-            # Fernverkehr (z.B. Wien -> Salzburg ca. 2h 25m auf Weststrecke)
-            rj_min = max(60, int(dist_km / 115.0 * 60))
-            total_dur_min = rj_min + 35
+            # Reale Bahnstrecken in Österreich folgen Tälern und Bahnkorridoren (Faktor ~1.35 gegenüber Luftlinie)
+            rail_km = dist_km * 1.35
+            # Durchschnittsgeschwindigkeit: Fernverkehrszüge (Railjet / IC) ca. 85-95 km/h inklusive Halte & Alpenquerung
+            total_dur_min = max(60, int((rail_km / 85.0) * 60.0))
             arr1 = add_min(dep_time, total_dur_min)
+
+            is_from_vienna = "wien" in origin_name.lower() or "stephan" in origin_name.lower()
+            if is_from_vienna:
+                first_leg_line = "S-Bahn / REX"
+                first_leg_type = "TRAIN"
+                hub_name = "Wien Hauptbahnhof"
+                hub_lat, hub_lon = 48.1852, 16.3764
+                first_leg_dur = min(25, int(total_dur_min * 0.15))
+            else:
+                first_leg_line = "REX 65" if "eisenstadt" in origin_name.lower() else "REX / Regionalzug"
+                first_leg_type = "TRAIN"
+                hub_name = "Wien Meidling / Bahnknotenpunkt"
+                hub_lat, hub_lon = 48.175, 16.333
+                first_leg_dur = min(58, int(total_dur_min * 0.18))
+
+            first_leg_end = add_min(dep_time, first_leg_dur)
+            rj_start = add_min(first_leg_end, 12)  # 12 min Puffer zum Umsteigen
+            rj_dur_min = max(30, int((arr1 - rj_start).total_seconds() / 60))
 
             journey1 = Journey(
                 id="journey-fallback-rjx",
@@ -442,63 +461,55 @@ class RoutingService:
                 departureTime=iso(dep_time),
                 arrivalTime=iso(arr1),
                 durationSeconds=total_dur_min * 60,
-                walkingSeconds=8 * 60,
-                walkingMeters=500,
-                transferCount=2,
+                walkingSeconds=5 * 60,
+                walkingMeters=300,
+                transferCount=1,
                 realtime=True,
                 totalDelayMinutes=0,
+                costScore=float(total_dur_min + 4.0),
                 explanation=JourneyExplanation(
-                    headline="Beste Fernverkehrsverbindung",
+                    headline="Beste Bahn- & Fernverkehrsverbindung",
                     details=[
-                        f"Direkter Fernverkehr nach {dest_name}.",
-                        "Umstieg am Hauptbahnhof mit gesichertem Taktanschluss."
+                        f"Verbindung von {origin_name} nach {dest_name}.",
+                        f"Umstieg am Hauptverkehrsknoten {hub_name} mit gesichertem Taktanschluss."
                     ]
                 ),
                 legs=[
                     Leg(
                         id="fb-leg-1",
-                        type="WALK",
-                        fromStop=StopPoint(name=origin_name, lat=lat1, lon=lon1, scheduledTime=iso(dep_time)),
-                        toStop=StopPoint(name="Nächste Nahverkehrsstation", lat=lat1, lon=lon1, scheduledTime=iso(add_min(dep_time, 5))),
+                        type=first_leg_type,
+                        line=first_leg_line,
+                        headsign=hub_name,
+                        color="#059669",
+                        fromStop=StopPoint(name=origin_name, lat=lat1, lon=lon1, platform="Bahnsteig 1", scheduledTime=iso(dep_time)),
+                        toStop=StopPoint(name=hub_name, lat=hub_lat, lon=hub_lon, platform="Bahnsteig 4", scheduledTime=iso(first_leg_end)),
                         startTime=iso(dep_time),
-                        endTime=iso(add_min(dep_time, 5)),
-                        durationSeconds=5 * 60,
-                        distanceMeters=350,
-                        coordinates=[[lon1, lat1], [lon1, lat1]]
+                        endTime=iso(first_leg_end),
+                        durationSeconds=first_leg_dur * 60,
+                        stopsCount=4,
+                        coordinates=[[lon1, lat1], [hub_lon, hub_lat]]
                     ),
                     Leg(
                         id="fb-leg-2",
-                        type="SUBWAY",
-                        line="U-Bahn",
-                        fromStop=StopPoint(name="Nächste Nahverkehrsstation", lat=lat1, lon=lon1, scheduledTime=iso(add_min(dep_time, 5))),
-                        toStop=StopPoint(name="Wien Hauptbahnhof", lat=48.1852, lon=16.3764, scheduledTime=iso(add_min(dep_time, 25))),
-                        startTime=iso(add_min(dep_time, 5)),
-                        endTime=iso(add_min(dep_time, 25)),
-                        durationSeconds=20 * 60,
-                        stopsCount=5,
-                        coordinates=[[lon1, lat1], [16.3764, 48.1852]]
-                    ),
-                    Leg(
-                        id="fb-leg-3",
                         type="TRAIN",
                         line="RJX",
                         headsign=dest_name,
                         color="#b91c1c",
-                        fromStop=StopPoint(name="Wien Hauptbahnhof", lat=48.1852, lon=16.3764, platform="Bahnsteig 7", scheduledTime=iso(add_min(dep_time, 35))),
+                        fromStop=StopPoint(name=hub_name, lat=hub_lat, lon=hub_lon, platform="Bahnsteig 6", scheduledTime=iso(rj_start)),
                         toStop=StopPoint(name=dest_name, lat=lat2, lon=lon2, platform="Bahnsteig 2", scheduledTime=iso(arr1)),
-                        startTime=iso(add_min(dep_time, 35)),
+                        startTime=iso(rj_start),
                         endTime=iso(arr1),
-                        durationSeconds=rj_min * 60,
-                        stopsCount=6,
+                        durationSeconds=rj_dur_min * 60,
+                        stopsCount=7,
                         transferInfo=TransferInfo(
-                            stationName="Wien Hauptbahnhof",
-                            durationSeconds=10 * 60,
-                            walkingMeters=150,
+                            stationName=hub_name,
+                            durationSeconds=12 * 60,
+                            walkingMeters=120,
                             difficulty="RELAXED",
                             difficultyLabel="Sicherer Umstieg",
-                            bufferMinutes=10
+                            bufferMinutes=12
                         ),
-                        coordinates=[[16.3764, 48.1852], [lon2, lat2]]
+                        coordinates=[[hub_lon, hub_lat], [lon2, lat2]]
                     )
                 ]
             )

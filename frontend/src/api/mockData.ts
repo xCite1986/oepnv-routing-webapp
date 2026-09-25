@@ -559,6 +559,142 @@ export function createMockViennaJourneys(
     ]
   };
 
+  if (fromPoint && toPoint) {
+    const lat1 = fromPoint.lat || 48.2082;
+    const lon1 = fromPoint.lon || 16.3738;
+    const lat2 = toPoint.lat || 48.1108;
+    const lon2 = toPoint.lon || 16.569;
+    const dLat = (lat2 - lat1) * 111.0;
+    const dLon = (lon2 - lon1) * 75.0;
+    const distKm = Math.sqrt(dLat * dLat + dLon * dLon);
+
+    const fromName = fromPoint.label || 'Start';
+    const toName = toPoint.label || 'Ziel';
+    const isViennaLocal =
+      (fromName.toLowerCase().includes('stephan') || fromName.toLowerCase().includes('wien')) &&
+      (toName.toLowerCase().includes('flughafen') || toName.toLowerCase().includes('schwechat') || distKm < 45);
+
+    if (!isViennaLocal && distKm > 45) {
+      // Überregionale / österreichweite Bahnverbindung
+      const durHours = Math.max(1.5, distKm / 78.0);
+      const durSec = Math.round(durHours * 3600);
+      const durMin = Math.round(durSec / 60);
+
+      const arrTime = addMinutes(baseTime, durMin);
+      const leg1End = addMinutes(baseTime, Math.min(58, Math.round(durMin * 0.15)));
+      const leg2Start = addMinutes(leg1End, 12);
+
+      const regionalJourney: Journey = {
+        id: 'journey-mock-rail-1',
+        recommended: true,
+        categoryTag: 'EMPFOHLEN',
+        tagLabel: 'EMPFOHLEN',
+        departureTime: toISO(baseTime),
+        arrivalTime: toISO(arrTime),
+        durationSeconds: durSec,
+        walkingSeconds: 300,
+        walkingMeters: 250,
+        transferCount: 1,
+        realtime: true,
+        totalDelayMinutes: 0,
+        costScore: durMin + 3.0 + 1.0,
+        costBreakdown: {
+          costScore: durMin + 4.0,
+          etaSeconds: durSec,
+          etaMinutes: durMin,
+          transferPenalty: 3.0,
+          missedConnectionRisk: 1.0,
+          disruptionRisk: 0.0,
+          alpha: 1.0,
+          beta: 1.0,
+          gamma: 1.0,
+          reliabilityPercent: 96,
+          summary: `ETA (${durMin}m) + Umstieg (+3.0m)`,
+        },
+        reliabilityPercent: 96,
+        explanation: {
+          headline: 'Schnellste Fernverkehrs-Verbindung',
+          details: [
+            `Beste Verbindung von ${fromName} nach ${toName} mit Umstieg über den Hauptverkehrsknoten.`,
+            `Gesamtreisezeit ca. ${Math.floor(durMin / 60)}h ${durMin % 60}m.`
+          ],
+        },
+        legs: [
+          {
+            id: 'mock-rail-leg-1',
+            type: 'TRAIN',
+            line: 'REX 65',
+            headsign: 'Wien Meidling',
+            color: '#059669',
+            fromStop: {
+              name: fromName,
+              lat: lat1,
+              lon: lon1,
+              platform: 'Bahnsteig 1',
+              scheduledTime: toISO(baseTime),
+            },
+            toStop: {
+              name: 'Wien Meidling / Hauptknoten',
+              lat: 48.175,
+              lon: 16.333,
+              platform: 'Bahnsteig 4',
+              scheduledTime: toISO(leg1End),
+            },
+            startTime: toISO(baseTime),
+            endTime: toISO(leg1End),
+            durationSeconds: Math.round((leg1End.getTime() - baseTime.getTime()) / 1000),
+            stopsCount: 5,
+            realtimeStatus: 'ON_TIME',
+            delayMinutes: 0,
+          },
+          {
+            id: 'mock-rail-leg-2',
+            type: 'TRAIN',
+            line: 'RJX',
+            headsign: toName,
+            color: '#b91c1c',
+            fromStop: {
+              name: 'Wien Meidling / Hauptknoten',
+              lat: 48.175,
+              lon: 16.333,
+              platform: 'Bahnsteig 6',
+              scheduledTime: toISO(leg2Start),
+            },
+            toStop: {
+              name: toName,
+              lat: lat2,
+              lon: lon2,
+              platform: 'Bahnsteig 2',
+              scheduledTime: toISO(arrTime),
+            },
+            startTime: toISO(leg2Start),
+            endTime: toISO(arrTime),
+            durationSeconds: Math.round((arrTime.getTime() - leg2Start.getTime()) / 1000),
+            stopsCount: 8,
+            transferInfo: {
+              stationName: 'Wien Meidling / Hauptknoten',
+              durationSeconds: 12 * 60,
+              walkingMeters: 120,
+              difficulty: 'RELAXED',
+              difficultyLabel: 'Sicherer Umstieg',
+              bufferMinutes: 12,
+            },
+            realtimeStatus: 'ON_TIME',
+            delayMinutes: 0,
+          }
+        ]
+      };
+
+      return {
+        generatedAt: toISO(baseTime),
+        recommendedJourneyId: regionalJourney.id,
+        journeys: [regionalJourney],
+        realtimeActive: true,
+        disruptionSummary: undefined,
+      };
+    }
+  }
+
   const journeysList = [journey1, journey2, journey3];
   if (fromPoint?.label || toPoint?.label) {
     const fromName = fromPoint?.label || 'Start';

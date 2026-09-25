@@ -1,6 +1,7 @@
 import { JourneySearchRequest, JourneySearchResponse, LocationPoint, IncidentAlert } from '../types/routing';
 import { createMockViennaJourneys, MOCK_INCIDENTS } from './mockData';
 import { searchViennaLocations } from './viennaLocations';
+import { ScottyHafasClient } from './scottyHafasClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -11,11 +12,13 @@ export class TransitApiClient {
   static async checkBackendHealth(): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
       const res = await fetch(`${API_BASE}/health`, { signal: controller.signal });
       clearTimeout(timeoutId);
-      this.isBackendAvailable = res.ok;
-      return res.ok;
+      const contentType = res.headers.get('content-type') || '';
+      const isHealthy = res.ok && contentType.includes('application/json');
+      this.isBackendAvailable = isHealthy;
+      return isHealthy;
     } catch {
       this.isBackendAvailable = false;
       return false;
@@ -115,10 +118,11 @@ export class TransitApiClient {
   }
 
   static async searchJourneys(req: JourneySearchRequest): Promise<JourneySearchResponse> {
+    // 1. Python FastAPI Backend (lokal oder Cloud-Container)
     try {
       const controller = new AbortController();
-      // 20s Timeout, damit auch österreichweite Live-Anfragen an ÖBB HAFAS genügend Zeit haben
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      // 30s Timeout, damit auch österreichweite Live-Anfragen genügend Zeit haben
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       const res = await fetch(`${API_BASE}/journeys/search`, {
         method: 'POST',
         headers: {
@@ -137,10 +141,26 @@ export class TransitApiClient {
         }
       }
     } catch (err) {
-      console.warn('Backend Verbindungssuche fehlgeschlagen oder Timeout, verwende Fallback:', err);
+      console.warn('Backend Verbindungssuche offline oder Timeout, frage ÖBB Scotty Gateway direkt an:', err);
     }
 
-    // Fallback: Generiere Route passend zum gewünschten Start und Ziel
+    // 2. Direktabfrage an das ÖBB Scotty HAFAS Gateway (z.B. auf Netlify via Reverse Proxy)
+    try {
+      const scottyJourneys = await ScottyHafasClient.planTrips(req);
+      if (scottyJourneys && scottyJourneys.length > 0) {
+        return {
+          generatedAt: new Date().toISOString(),
+          recommendedJourneyId: scottyJourneys[0].id,
+          journeys: scottyJourneys,
+          realtimeActive: true,
+          disruptionSummary: undefined,
+        };
+      }
+    } catch (scottyErr) {
+      console.warn('ÖBB Scotty Direktabfrage fehlgeschlagen, verwende Fallback:', scottyErr);
+    }
+
+    // 3. Fallback: Generiere Route passend zum gewünschten Start und Ziel
     await new Promise(resolve => setTimeout(resolve, 300));
     return createMockViennaJourneys(req.dateTime, req.from, req.to);
   }

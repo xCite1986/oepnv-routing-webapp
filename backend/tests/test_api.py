@@ -144,3 +144,39 @@ async def test_journeys_search_egon_friedell_to_salzburg():
             for leg in j["legs"]:
                 if leg.get("line") == "S7":
                     assert "Salzburg" not in leg["toStop"]["name"]
+
+@pytest.mark.asyncio
+async def test_journeys_search_eisenstadt_to_bregenz():
+    transport = ASGITransport(app=app)
+    payload = {
+        "from": {
+            "lat": 47.8447,
+            "lon": 16.5335,
+            "label": "Eisenstadt Bahnhof"
+        },
+        "to": {
+            "lat": 47.5034,
+            "lon": 9.7428,
+            "label": "Bregenz Bahnhof"
+        },
+        "dateTime": "2026-09-25T11:21:00",
+        "timeMode": "DEPARTURE"
+    }
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post("/api/v1/journeys/search", json=payload)
+        assert response.status_code == 200
+        data = response.json()
+        assert "journeys" in data
+        assert len(data["journeys"]) > 0
+
+        # Nationwide trip Eisenstadt -> Bregenz must be at least 6.5 hours (> 23400s)
+        rec = data["journeys"][0]
+        assert rec["durationSeconds"] >= 23400
+        assert "Eisenstadt" in rec["legs"][0]["fromStop"]["name"]
+        assert "Bregenz" in rec["legs"][-1]["toStop"]["name"]
+
+        # Ensure no Vienna subway U1 or S7 claims to reach Bregenz directly
+        for j in data["journeys"]:
+            for leg in j["legs"]:
+                if leg.get("line") in ["U1", "U2", "U3", "U4", "U6", "S7"]:
+                    assert "Bregenz" not in leg["toStop"]["name"]
