@@ -129,7 +129,7 @@ export class AdminApiClient {
         }
         return { success: true, token: demoToken };
       }
-      return { success: false, error: 'Ungültiges Kennwort. (Standard: admin123)' };
+      return { success: false, error: 'Ungültiges Kennwort.' };
     }
     return { success: false, error: 'Authentifizierung fehlgeschlagen.' };
   }
