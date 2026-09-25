@@ -1,5 +1,5 @@
 import { Journey } from '../types/routing';
-import { getLineColors, formatTime } from './formatters';
+import { getLineColors, formatTime, parseLegLineInfo } from './formatters';
 
 /**
  * Exportiert die übergebene Route als hochauflösende PNG-Grafik.
@@ -143,11 +143,20 @@ export function exportJourneyAsGraphic(
       ctx.fill();
 
       ctx.fillStyle = colors.text;
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText(leg.line || leg.type, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 - 3);
-      ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-      ctx.fillText(`${durationMin} Min.`, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 + 13);
+      const parsed = parseLegLineInfo(leg.line, leg.type);
+      if (parsed.subNumber) {
+        ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(parsed.lineName, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 - 8);
+        ctx.font = 'normal 9px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(`Zug ${parsed.subNumber}`, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 + 3);
+        ctx.font = 'bold 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(`${durationMin} Min.`, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 + 15);
+      } else {
+        ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(parsed.lineName, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 - 3);
+        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.fillText(`${durationMin} Min.`, startX + 20 + ribbonWidth / 2, currentY + boxHeight / 2 + 13);
+      }
       ctx.textAlign = 'left';
     }
 

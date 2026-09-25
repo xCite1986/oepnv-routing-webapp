@@ -77,20 +77,24 @@ export function getLineColors(line?: string, type?: string): { bg: string; text:
   if (upper === 'U5') return { bg: '#06b6d4', text: '#ffffff' };
   if (upper === 'U6') return { bg: '#92400e', text: '#ffffff' };
 
-  // S-Bahn / Regionalzug / ÖBB
-  if (upper.startsWith('S') || upper.startsWith('REX') || upper.startsWith('CJX') || upper.startsWith('R') || upper === 'CAT') {
-    if (upper === 'CAT') return { bg: '#84cc16', text: '#1e293b' };
-    return { bg: '#0284c7', text: '#ffffff' };
-  }
-
-  // Fernverkehr ÖBB (Railjet / ICE / IC / EC)
-  if (upper.startsWith('RJ') || upper.startsWith('IC') || upper.startsWith('EC')) {
+  // Fernverkehr ÖBB & Partner (Railjet / ICE / IC / EC / NJ / EN)
+  if (upper.startsWith('RJ') || upper.startsWith('ICE') || upper.startsWith('IC') || upper.startsWith('EC') || upper.startsWith('NJ') || upper.startsWith('EN')) {
     return { bg: '#b91c1c', text: '#ffffff' };
   }
 
   // WESTbahn
   if (upper.startsWith('WB') || upper.includes('WEST')) {
     return { bg: '#2563eb', text: '#ffffff' };
+  }
+
+  // CAT (City Airport Train)
+  if (upper === 'CAT' || upper.startsWith('CAT')) {
+    return { bg: '#84cc16', text: '#1e293b' };
+  }
+
+  // S-Bahn / Regionalzug / ÖBB Nahverkehr (S, REX, CJX, R)
+  if (upper.startsWith('S') || upper.startsWith('REX') || upper.startsWith('CJX') || upper.startsWith('R ') || upper.match(/^R\d/) || upper === 'R') {
+    return { bg: '#0284c7', text: '#ffffff' };
   }
 
   // Straßenbahn
@@ -118,21 +122,38 @@ export function parseLegLineInfo(rawLine?: string, legType?: string): ParsedLine
   }
   const trimmed = rawLine.trim();
 
-  // Pattern 1: "S 1 (Zug-Nr. 19307)" or "REX 2 (Zug-Nr. 23345)" or "CJX 5 (Zug-Nr. 1910)"
+  // Pattern 1: Explicit Zug-Nr in parentheses: 'CJX 5 (Zug-Nr. 1910)', 'REX 2 (Zug-Nr. 23345)', 'S 1 (Zug-Nr. 19307)'
   const zugNrMatch = trimmed.match(/^(.*?)\s*\((?:Zug-Nr\.?|Zug)?\s*(\d+)\)$/i);
   if (zugNrMatch) {
+    let lineName = zugNrMatch[1].trim();
+    const subNumber = zugNrMatch[2];
+    // If lineName ends with the same train number (e.g. "RJX 60" with Zug-Nr 60)
+    const redundantTrain = lineName.match(/^(RJX|RJ|ICE|IC|EC|WB|WESTbahn|NJ|EN)\s*(\d+)$/i);
+    if (redundantTrain && redundantTrain[2] === subNumber) {
+      lineName = redundantTrain[1].toUpperCase();
+    }
     return {
-      lineName: zugNrMatch[1].trim(),
-      subNumber: zugNrMatch[2],
+      lineName,
+      subNumber,
     };
   }
 
-  // Pattern 2: "RJX19952" or "RJX 60" or "WB 79214" or "ICE 118" or "EC 1216"
-  const trainCodeMatch = trimmed.match(/^(RJX|RJ|ICE|IC|EC|CJX|REX|WB|WESTbahn)\s*(\d+)$/i);
-  if (trainCodeMatch) {
+  // Pattern 2: Regional lines with line numbers (REX, CJX, S, R) - keep together as lineName
+  // Examples: 'REX 7', 'REX 2', 'CJX 5', 'S 1', 'S 45', 'R 2', 'REX7', 'CJX5'
+  const regionalLineMatch = trimmed.match(/^(REX|CJX|S|R)\s*(\d+[A-Z]?)$/i);
+  if (regionalLineMatch) {
     return {
-      lineName: trainCodeMatch[1].toUpperCase(),
-      subNumber: trainCodeMatch[2],
+      lineName: `${regionalLineMatch[1].toUpperCase()} ${regionalLineMatch[2]}`,
+    };
+  }
+
+  // Pattern 3: Long-distance trains (Fernverkehr) where the number is the train number (Zugnummer): RJX, RJ, ICE, IC, EC, WB, WESTbahn, NJ, EN
+  // Examples: 'RJX 60', 'RJX19952', 'ICE 118', 'IC 546', 'EC 1216', 'WB 79214', 'NJ 468'
+  const fernverkehrMatch = trimmed.match(/^(RJX|RJ|ICE|IC|EC|WB|WESTbahn|NJ|EN)\s*(\d+)$/i);
+  if (fernverkehrMatch) {
+    return {
+      lineName: fernverkehrMatch[1].toUpperCase(),
+      subNumber: fernverkehrMatch[2],
     };
   }
 
