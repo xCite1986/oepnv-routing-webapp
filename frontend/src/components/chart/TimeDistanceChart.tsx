@@ -81,21 +81,21 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
   return (
     <div className="h-full bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
       {/* Chart Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-200 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3">
+      <div className="p-4 sm:p-5 border-b border-red-700/20 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 text-white flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 shrink-0">
-            <BarChart2 className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-white text-red-600 flex items-center justify-center shadow-md shadow-red-950/15 shrink-0">
+            <BarChart2 className="w-5 h-5 text-red-600" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base font-bold text-white tracking-tight">
                 Zeit-Weg-Liniengrafik
               </h2>
-              <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30 tracking-wide">
                 {journeys.length} Optionen
               </span>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-red-100/90 mt-0.5 font-medium">
               Fahrzeiten, Linien &amp; Umstiege im Direkten vergleich
             </p>
           </div>
@@ -107,10 +107,10 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
             <button
               type="button"
               onClick={handleDownload}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white hover:bg-red-50 text-red-600 hover:text-red-700 text-xs font-bold transition-all shadow-sm active:scale-95 cursor-pointer"
               title="Aktuell gewählte Route als hochauflösende PNG-Grafik herunterladen"
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 text-red-600" />
               <span>Grafik exportieren</span>
             </button>
           )}
@@ -120,7 +120,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
             <button
               type="button"
               onClick={onCloseMobile}
-              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="lg:hidden p-1.5 rounded-lg text-red-100 hover:text-white hover:bg-white/15 transition-colors"
               title="Schließen"
             >
               <X className="w-5 h-5" />
