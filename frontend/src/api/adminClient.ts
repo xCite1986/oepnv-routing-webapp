@@ -64,6 +64,10 @@ export interface LiveMonitorResponse {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 const ADMIN_TOKEN_KEY = 'oepnv_admin_token';
 
+function isJsonResponse(res: Response): boolean {
+  return res.ok && (res.headers.get('content-type') || '').includes('application/json');
+}
+
 export class AdminApiClient {
   private static token: string | null = null;
 
@@ -108,7 +112,7 @@ export class AdminApiClient {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password })
       });
-      if (res.ok) {
+      if (isJsonResponse(res)) {
         const data = await res.json();
         this.token = data.token;
         if (typeof sessionStorage !== 'undefined') {
@@ -120,18 +124,19 @@ export class AdminApiClient {
         return { success: false, error: 'Ungültiges Admin-Kennwort.' };
       }
     } catch {
-      // Fallback für Standalone- / Demo-Betrieb (z. B. auf Netlify ohne Backend-Container)
-      if (password === 'admin123' || password === 'admin') {
-        const demoToken = 'demo-admin-token-2026';
-        this.token = demoToken;
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem(ADMIN_TOKEN_KEY, demoToken);
-        }
-        return { success: true, token: demoToken };
-      }
-      return { success: false, error: 'Ungültiges Kennwort.' };
+      // Backend offline oder Netzwerkfehler
     }
-    return { success: false, error: 'Authentifizierung fehlgeschlagen.' };
+
+    // Fallback für Standalone- / Netlify-Betrieb (wenn kein separater Backend-Server läuft)
+    if (password === 'admin123' || password === 'admin') {
+      const demoToken = 'demo-admin-token-2026';
+      this.token = demoToken;
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(ADMIN_TOKEN_KEY, demoToken);
+      }
+      return { success: true, token: demoToken };
+    }
+    return { success: false, error: 'Ungültiges Kennwort.' };
   }
 
   static logout(): void {
@@ -153,7 +158,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -207,7 +212,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -226,7 +231,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -270,7 +275,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -298,7 +303,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -324,7 +329,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -343,7 +348,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -367,7 +372,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -393,7 +398,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -420,7 +425,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }
@@ -440,7 +445,7 @@ export class AdminApiClient {
       if (res.status === 401) {
         this.logout();
       }
-      if (res.ok) return await res.json();
+      if (isJsonResponse(res)) return await res.json();
     } catch {
       // Fallback
     }

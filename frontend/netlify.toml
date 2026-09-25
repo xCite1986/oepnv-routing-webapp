@@ -19,6 +19,13 @@
   status = 200
   force = true
 
+# Wiener Linien OGD Realtime Reverse Proxy (ermöglicht Echtzeit-Monitor auf Netlify ohne CORS)
+[[redirects]]
+  from = "/api/wl/*"
+  to = "https://www.wienerlinien.at/ogd_realtime/:splat"
+  status = 200
+  force = true
+
 # SPA Catch-All für React Router
 [[redirects]]
   from = "/*"
