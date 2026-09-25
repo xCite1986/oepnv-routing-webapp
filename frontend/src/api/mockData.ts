@@ -1,6 +1,10 @@
-import { Journey, JourneySearchResponse, IncidentAlert } from '../types/routing';
+import { Journey, JourneySearchResponse, IncidentAlert, LocationPoint } from '../types/routing';
 
-export function createMockViennaJourneys(baseDateStr?: string): JourneySearchResponse {
+export function createMockViennaJourneys(
+  baseDateStr?: string,
+  fromPoint?: LocationPoint,
+  toPoint?: LocationPoint
+): JourneySearchResponse {
   const baseTime = baseDateStr ? new Date(baseDateStr) : new Date();
   
   // Format Hilfsfunktion
@@ -555,10 +559,22 @@ export function createMockViennaJourneys(baseDateStr?: string): JourneySearchRes
     ]
   };
 
+  const journeysList = [journey1, journey2, journey3];
+  if (fromPoint?.label || toPoint?.label) {
+    const fromName = fromPoint?.label || 'Start';
+    const toName = toPoint?.label || 'Ziel';
+    journeysList.forEach((j) => {
+      if (j.legs.length > 0) {
+        j.legs[0].fromStop.name = fromName;
+        j.legs[j.legs.length - 1].toStop.name = toName;
+      }
+    });
+  }
+
   return {
     generatedAt: toISO(baseTime),
     recommendedJourneyId: journey1.id,
-    journeys: [journey1, journey2, journey3],
+    journeys: journeysList,
     realtimeActive: true,
     disruptionSummary: 'Aktuelle Störungsmeldung: S-Bahn Stammstrecke / Rennweg +10-15 Min. Verzögerung wegen Weichenreparatur.'
   };

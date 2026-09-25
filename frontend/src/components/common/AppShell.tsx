@@ -42,7 +42,7 @@ export const AppShell: React.FC<AppShellProps> = ({
         <div className="max-w-[1760px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 font-black text-xs tracking-tight select-none">
+            <div className="px-3 h-10 min-w-[62px] rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 font-black text-xs sm:text-sm tracking-wider select-none shrink-0">
               OMATA
             </div>
             <div>

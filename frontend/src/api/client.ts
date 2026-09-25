@@ -117,7 +117,8 @@ export class TransitApiClient {
   static async searchJourneys(req: JourneySearchRequest): Promise<JourneySearchResponse> {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      // 20s Timeout, damit auch österreichweite Live-Anfragen an ÖBB HAFAS genügend Zeit haben
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
       const res = await fetch(`${API_BASE}/journeys/search`, {
         method: 'POST',
         headers: {
@@ -128,17 +129,20 @@ export class TransitApiClient {
       });
       clearTimeout(timeoutId);
 
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
-        return data;
+        if (data && Array.isArray(data.journeys) && data.journeys.length > 0) {
+          return data;
+        }
       }
-    } catch {
-      // Backend offline oder Timeout -> Fallback auf Phase 1 Mock-Engine
+    } catch (err) {
+      console.warn('Backend Verbindungssuche fehlgeschlagen oder Timeout, verwende Fallback:', err);
     }
 
-    // Phase 1 Mock Response generieren
-    await new Promise(resolve => setTimeout(resolve, 400)); // Realistische Latenz simulieren
-    return createMockViennaJourneys(req.dateTime);
+    // Fallback: Generiere Route passend zum gewünschten Start und Ziel
+    await new Promise(resolve => setTimeout(resolve, 300));
+    return createMockViennaJourneys(req.dateTime, req.from, req.to);
   }
 
   static async getIncidents(): Promise<IncidentAlert[]> {

@@ -26,21 +26,42 @@ export const LocationInput: React.FC<LocationInputProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sync internal text when value prop changes externally
+  // Sync internal text only when value prop actually changes externally
   useEffect(() => {
-    setInputValue(value?.label || '');
-  }, [value]);
+    if (value?.label !== undefined && value.label !== inputValue) {
+      setInputValue(value.label);
+    }
+  }, [value?.label]);
 
-  // Click outside to close suggestions
+  // Click outside to close suggestions and commit typed location
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        const trimmed = inputValue.trim();
+        if (trimmed) {
+          const exactMatch = suggestions.find(s => s.label.toLowerCase() === trimmed.toLowerCase());
+          if (exactMatch) {
+            handleSelect(exactMatch);
+          } else if (!value || value.label !== trimmed) {
+            const partialMatch = suggestions.find(s => s.label.toLowerCase().includes(trimmed.toLowerCase()));
+            if (partialMatch) {
+              handleSelect(partialMatch);
+            } else {
+              handleSelect({
+                lat: 48.2082,
+                lon: 16.3738,
+                label: trimmed,
+                type: 'STATION',
+              });
+            }
+          }
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [inputValue, value, suggestions]);
 
   // Fetch suggestions with debouncing
   useEffect(() => {
@@ -134,8 +155,36 @@ export const LocationInput: React.FC<LocationInputProps> = ({
           value={inputValue}
           onFocus={() => setIsOpen(true)}
           onChange={(e) => {
-            setInputValue(e.target.value);
+            const nextVal = e.target.value;
+            setInputValue(nextVal);
             setIsOpen(true);
+            if (!nextVal.trim()) {
+              onChange(null);
+            } else {
+              onChange({
+                lat: 48.2082,
+                lon: 16.3738,
+                label: nextVal.trim(),
+                type: 'STATION',
+              });
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              const trimmed = inputValue.trim();
+              if (suggestions.length > 0) {
+                handleSelect(suggestions[0]);
+              } else if (trimmed) {
+                handleSelect({
+                  lat: 48.2082,
+                  lon: 16.3738,
+                  label: trimmed,
+                  type: 'STATION',
+                });
+              }
+              setIsOpen(false);
+            }
           }}
           placeholder={placeholder}
           className="w-full pl-9 pr-16 py-3 bg-slate-50 border border-slate-200 focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-100 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 transition-all outline-hidden shadow-2xs"
