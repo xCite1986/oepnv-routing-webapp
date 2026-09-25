@@ -7,7 +7,7 @@ import { getLineColors, formatTime, parseLegLineInfo } from './formatters';
  */
 export function exportJourneyAsGraphic(
   journey: Journey,
-  routeTitle = 'WienMobil ÖPNV-Route'
+  routeTitle = 'RTTR-Route'
 ): void {
   if (typeof document === 'undefined') return;
 
@@ -30,7 +30,7 @@ export function exportJourneyAsGraphic(
   ctx.fillStyle = '#f8fafc';
   ctx.fillRect(0, 0, width, height);
 
-  // 2. Kopfzeile mit WienMobil-Rot
+  // 2. Kopfzeile mit RTTR-Rot
   const gradient = ctx.createLinearGradient(0, 0, width, 0);
   gradient.addColorStop(0, '#e2001a');
   gradient.addColorStop(1, '#b91c1c');
@@ -40,7 +40,7 @@ export function exportJourneyAsGraphic(
   // Brand Header
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-  ctx.fillText('WienMobil Routing', 40, 48);
+  ctx.fillText('RTTR – Realistic Transfer Travel Routes', 40, 48);
 
   ctx.font = 'normal 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
@@ -239,7 +239,7 @@ export function exportJourneyAsGraphic(
   ctx.fillStyle = '#94a3b8';
   ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('WienMobil ÖPNV Routing • Wiener Linien & ÖBB Scotty Live • Stand: ' + new Date().toLocaleString('de-AT'), width / 2, height - 16);
+  ctx.fillText('RTTR • Realistic Transfer Travel Routes • Wiener Linien & ÖBB Scotty Live • Stand: ' + new Date().toLocaleString('de-AT'), width / 2, height - 16);
   ctx.textAlign = 'left';
 
   // 6. Download anstoßen
@@ -247,7 +247,7 @@ export function exportJourneyAsGraphic(
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `wienmobil-route-${journey.id || 'export'}.png`;
+    a.download = `rttr-route-${journey.id || 'export'}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

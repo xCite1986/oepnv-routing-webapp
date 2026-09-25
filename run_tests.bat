@@ -1,6 +1,6 @@
 @echo off
 echo ========================================================
-echo  WienMobil ÖPNV Routing - Automatische Test-Ausfuehrung
+echo  RTTR - Realistic Transfer Travel Routes - Test-Runner
 echo ========================================================
 echo.
 

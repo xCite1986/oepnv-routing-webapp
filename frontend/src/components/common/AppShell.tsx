@@ -42,13 +42,14 @@ export const AppShell: React.FC<AppShellProps> = ({
         <div className="max-w-[1760px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo & Title */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20">
-              <Compass className="w-6 h-6" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 font-black text-xs tracking-tight select-none">
+              RTTR
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                  WienMobil Routing
+                <h1 className="text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-baseline gap-1.5 flex-wrap">
+                  <span>RTTR</span>
+                  <span className="font-bold text-slate-500 text-xs sm:text-sm hidden sm:inline">– Realistic Transfer Travel Routes</span>
                 </h1>
                 <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-red-100 text-red-700 tracking-wider">
                   Live
@@ -158,7 +159,7 @@ export const AppShell: React.FC<AppShellProps> = ({
       <footer className="mt-auto border-t border-slate-200 bg-white py-4 text-xs text-slate-500">
         <div className="max-w-[1760px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-center sm:text-left">
-            <span>ÖPNV-Routing Wien &middot; Basierend auf Open Data der Stadt Wien, Wiener Linien, ÖBB &amp; OpenStreetMap</span>
+            <span>RTTR &middot; Realistic Transfer Travel Routes &middot; Basierend auf Open Data der Stadt Wien, Wiener Linien, ÖBB &amp; OpenStreetMap</span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
@@ -276,7 +277,7 @@ export const AppShell: React.FC<AppShellProps> = ({
                   <h4>2. Software-Lizenz (Open Source)</h4>
                 </div>
                 <p className="text-[11px] text-slate-600">
-                  Der Quellcode dieser Anwendung ist als freie Open-Source-Software unter der <strong>MIT-Lizenz</strong> lizenziert. Die Webapp verwendet etablierte Open-Source-Komponenten wie React, TypeScript, FastAPI, Tailwind CSS, Vite und Lucide Icons.
+                  Der Quellcode von RTTR (Realistic Transfer Travel Routes) ist als freie Open-Source-Software unter der <strong>MIT-Lizenz</strong> lizenziert. Die Webapp verwendet etablierte Open-Source-Komponenten wie React, TypeScript, FastAPI, Tailwind CSS, Vite und Lucide Icons.
                 </p>
                 <div className="pt-0.5">
                   <a

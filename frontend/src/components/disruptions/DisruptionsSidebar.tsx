@@ -186,7 +186,7 @@ export const DisruptionsSidebar: React.FC<DisruptionsSidebarProps> = ({
                         <div className="mt-3 pt-2.5 border-t border-amber-200/80 flex items-center gap-1.5 text-[11px] font-medium text-amber-900">
                           <Sparkles className="w-3.5 h-3.5 text-red-600 shrink-0" />
                           <span>
-                            WienMobil Routing empfiehlt bereits eine Ausweichroute, um diesen Engpass zu umgehen.
+                            RTTR empfiehlt bereits eine Ausweichroute, um diesen Engpass zu umgehen.
                           </span>
                         </div>
                       </div>

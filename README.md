@@ -1,6 +1,6 @@
-# WienMobil ÖPNV-Routing Webapp
+# RTTR – Realistic Transfer Travel Routes
 
-Moderne, einfach bedienbare Webapp für ÖPNV-Routing in Wien mit Live-Echtzeit, dynamischer Verspätungsberechnung und regelbasierter Routen-Erklärung.
+Moderne, einfach bedienbare Webapp für ÖPNV-Routing in Wien & Umgebung mit Live-Echtzeit, dynamischer Verspätungsberechnung und regelbasierter Routen-Erklärung unter realen Umstiegsbedingungen.
 
 Entwickelt gemäß der Vorgabe in `oepnv-routing-webapp-entwicklungsprompt.md`.
 

@@ -1,6 +1,6 @@
 @echo off
 echo ========================================================
-echo  Netlify Release Tool - WienMobil ÖPNV Routing
+echo  Netlify Release Tool - RTTR (Realistic Transfer Travel Routes)
 echo ========================================================
 echo.
 
