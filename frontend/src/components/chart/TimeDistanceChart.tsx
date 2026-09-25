@@ -96,7 +96,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Fahrzeiten, Linien &amp; Umstiege im vertikalen Direktvergleich
+              Fahrzeiten, Linien &amp; Umstiege im Direkten vergleich
             </p>
           </div>
         </div>
@@ -186,7 +186,9 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                   const minLegsHeight = journey.legs.reduce((acc, leg) => {
                     const isWalk = leg.type === 'WALK';
                     const hasTransfer = Boolean(leg.transferInfo);
-                    return acc + (isWalk ? 24 : 32) + (hasTransfer ? 22 : 0);
+                    const parsed = parseLegLineInfo(leg.line, leg.type);
+                    const segHeight = isWalk ? 24 : (parsed.subNumber ? 38 : 32);
+                    return acc + segHeight + (hasTransfer ? 22 : 0);
                   }, 24);
 
                   const barHeight = Math.max(minLegsHeight, targetBarHeight);
@@ -259,6 +261,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                             const legMin = Math.round(leg.durationSeconds / 60);
                             const colors = getLineColors(leg.line, leg.type);
                             const legWeight = Math.max(1, leg.durationSeconds);
+                            const parsed = parseLegLineInfo(leg.line, leg.type);
 
                             return (
                               <React.Fragment key={leg.id || legIdx}>
@@ -268,7 +271,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                                     flex: `${legWeight} 1 0%`,
                                     backgroundColor: isWalk ? '#f1f5f9' : colors.bg,
                                     color: isWalk ? '#475569' : colors.text,
-                                    minHeight: isWalk ? '22px' : '30px',
+                                    minHeight: isWalk ? '22px' : (parsed.subNumber ? '36px' : '30px'),
                                   }}
                                   className={`flex flex-col items-center justify-center p-1 text-center border-b border-black/10 last:border-b-0 transition-transform ${
                                     isWalk ? 'border-dashed border-slate-300' : ''
@@ -283,15 +286,20 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
                                       </span>
                                     </div>
                                   ) : (
-                                    <div className="flex flex-col items-center justify-center leading-none">
-                                      <span className="text-[11px] font-black tracking-tight drop-shadow-xs truncate max-w-full">
-                                        {leg.line || leg.type}
+                                    <div className="flex flex-col items-center justify-center leading-none px-0.5">
+                                      <span className="text-[10px] sm:text-[11px] font-black tracking-tight drop-shadow-xs truncate max-w-full">
+                                        {parsed.lineName}
                                       </span>
-                                      <span className="text-[9px] font-bold opacity-90 mt-0.5">
+                                      {parsed.subNumber && (
+                                        <span className="text-[8px] sm:text-[9px] font-bold opacity-95 tracking-tight truncate max-w-full mt-0.5">
+                                          {parsed.subNumber}
+                                        </span>
+                                      )}
+                                      <span className="text-[8px] sm:text-[9px] font-bold opacity-90 mt-0.5">
                                         {legMin}m
                                       </span>
                                       {leg.delayMinutes > 0 && (
-                                        <span className="text-[8px] font-black bg-amber-400 text-amber-950 rounded px-1 mt-0.5">
+                                        <span className="text-[7px] sm:text-[8px] font-black bg-amber-400 text-amber-950 rounded px-0.5 mt-0.5">
                                           +{leg.delayMinutes}m
                                         </span>
                                       )}

@@ -109,7 +109,7 @@ describe('WienMobil Routing Frontend', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Zeit-Weg-Liniengrafik')).toBeInTheDocument();
-      expect(screen.getByText(/Fahrzeiten, Linien & Umstiege im vertikalen Direktvergleich/i)).toBeInTheDocument();
+      expect(screen.getByText(/Fahrzeiten, Linien & Umstiege im Direkten vergleich/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /Grafik exportieren/i })).toBeInTheDocument();
     });
 
