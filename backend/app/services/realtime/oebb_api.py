@@ -41,7 +41,7 @@ class OebbApiClient:
             return []
 
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RTTR/1.0"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OMATA/1.0"}
             async with httpx.AsyncClient(timeout=3.5, headers=headers) as client:
                 res = await client.get(
                     f"{cls.SCOTTY_GETSTOP_URL}?REQ0JourneyStopsS0A=1&REQ0JourneyStopsB=12&S={query}&js=true"
@@ -76,7 +76,7 @@ class OebbApiClient:
         """Prüft die Erreichbarkeit und Antwortzeit des ÖBB Scotty Gateways."""
         start = time.perf_counter()
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RTTR/1.0"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OMATA/1.0"}
             async with httpx.AsyncClient(timeout=4.0, headers=headers) as client:
                 # Testabfrage für Wien Hauptbahnhof
                 res = await client.get(
@@ -120,7 +120,7 @@ class OebbApiClient:
         """
         start = time.perf_counter()
         try:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RTTR/1.0"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OMATA/1.0"}
             async with httpx.AsyncClient(timeout=4.0, headers=headers) as client:
                 res = await client.get(
                     f"{cls.SCOTTY_STATION_BOARD_URL}?L=vs_scotty&evaId={eva_id}&boardType=dep&selectDate=today&time=now&maxJourneys=8"
@@ -293,7 +293,7 @@ class OebbApiClient:
                 }]
             }
 
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) RTTR/1.0"}
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) OMATA/1.0"}
             async with httpx.AsyncClient(timeout=8.0, headers=headers) as client:
                 res = await client.post("https://fahrplan.oebb.at/bin/mgate.exe", json=payload)
                 if res.status_code != 200:

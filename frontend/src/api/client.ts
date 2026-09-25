@@ -27,6 +27,7 @@ export class TransitApiClient {
       return searchViennaLocations('');
     }
 
+    // 1. Try Python FastAPI Backend if running (local or cloud)
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 2500);
@@ -34,17 +35,83 @@ export class TransitApiClient {
         signal: controller.signal
       });
       clearTimeout(timeoutId);
-      if (res.ok) {
+      const contentType = res.headers.get('content-type') || '';
+      if (res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
           return data;
         }
       }
     } catch {
-      // Backend nicht erreichbar -> Fallback
+      // Backend offline -> Fallback zu Proxy & lokalen Haltestellen
     }
 
-    return searchViennaLocations(query);
+    // 2. Lokale Haltestellen
+    const localMatches = searchViennaLocations(query);
+    const seen = new Set(localMatches.map(m => m.label.toLowerCase()));
+    const remoteMatches: LocationPoint[] = [];
+
+    // 3. Scotty & Photon Proxy (Netlify & Vite Reverse Proxy)
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+      const scottyPromise = fetch(
+        `/api/scotty/bin/ajax-getstop.exe/dn?REQ0JourneyStopsS0A=1&REQ0JourneyStopsB=12&S=${encodeURIComponent(query)}&js=true`,
+        { signal: controller.signal }
+      ).then(async (r) => {
+        if (!r.ok) return [];
+        const text = await r.text();
+        const match = text.match(/SLs\.sls\s*=\s*({.*})/);
+        if (match) {
+          const parsed = JSON.parse(match[1]);
+          return (parsed.suggestions || []).slice(0, 6).map((s: any) => ({
+            lat: s.xcoord ? parseFloat(s.xcoord) / 1000000 : 48.2082,
+            lon: s.ycoord ? parseFloat(s.ycoord) / 1000000 : 16.3738,
+            label: s.value,
+            type: 'STATION',
+            stopId: s.extId,
+            municipality: s.value.toLowerCase().includes('wien') ? 'Wien' : 'Österreich',
+          }));
+        }
+        return [];
+      }).catch(() => []);
+
+      const photonPromise = fetch(
+        `/api/photon/api/?q=${encodeURIComponent(query)}&lat=48.2082&lon=16.3738&limit=6`,
+        { signal: controller.signal }
+      ).then(async (r) => {
+        if (!r.ok) return [];
+        const data = await r.json();
+        return (data.features || []).map((f: any) => {
+          const props = f.properties || {};
+          const coords = f.geometry?.coordinates || [16.3738, 48.2082];
+          const name = props.name || props.street || '';
+          const city = props.city || 'Wien';
+          return {
+            lat: coords[1],
+            lon: coords[0],
+            label: `${name}${props.housenumber ? ' ' + props.housenumber : ''}, ${city}`.trim(),
+            type: 'ADDRESS',
+            municipality: city,
+          };
+        });
+      }).catch(() => []);
+
+      const [scottyResults, photonResults] = await Promise.all([scottyPromise, photonPromise]);
+      clearTimeout(timeoutId);
+
+      for (const item of [...scottyResults, ...photonResults]) {
+        if (item.label && !seen.has(item.label.toLowerCase())) {
+          seen.add(item.label.toLowerCase());
+          remoteMatches.push(item);
+        }
+      }
+    } catch {
+      // Ignoriere Netzwerkfehler im Fallback
+    }
+
+    return [...localMatches, ...remoteMatches].slice(0, 10);
   }
 
   static async searchJourneys(req: JourneySearchRequest): Promise<JourneySearchResponse> {

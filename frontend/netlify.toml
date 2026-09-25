@@ -5,6 +5,21 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# ÖBB Scotty Gateway Reverse Proxy (ermöglicht Live-Haltestellen auf Netlify ohne CORS)
+[[redirects]]
+  from = "/api/scotty/*"
+  to = "https://fahrplan.oebb.at/:splat"
+  status = 200
+  force = true
+
+# Photon OSM Geocoding Reverse Proxy (ermöglicht Adresssuche auf Netlify)
+[[redirects]]
+  from = "/api/photon/*"
+  to = "https://photon.komoot.io/:splat"
+  status = 200
+  force = true
+
+# SPA Catch-All für React Router
 [[redirects]]
   from = "/*"
   to = "/index.html"

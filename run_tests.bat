@@ -1,6 +1,6 @@
 @echo off
 echo ========================================================
-echo  RTTR - Realistic Transfer Travel Routes - Test-Runner
+echo  OMATA - Optimal Multimodal Arrival & Transfer Assistant
 echo ========================================================
 echo.
 

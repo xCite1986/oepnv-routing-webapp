@@ -3,11 +3,11 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
 import App from '../App';
 
-describe('RTTR – Realistic Transfer Travel Routes Frontend', () => {
+describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', () => {
   it('renders application header and title', () => {
     render(<App />);
-    expect(screen.getAllByText('RTTR').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText(/Realistic Transfer Travel Routes/i).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('OMATA').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Optimal Multimodal Arrival & Transfer Assistant/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders "Von" and "Nach" input fields with Vienna defaults', () => {

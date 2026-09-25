@@ -7,9 +7,19 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
+      '/api/v1': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+      },
+      '/api/scotty': {
+        target: 'https://fahrplan.oebb.at',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/scotty/, ''),
+      },
+      '/api/photon': {
+        target: 'https://photon.komoot.io',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/photon/, ''),
       },
     },
   },

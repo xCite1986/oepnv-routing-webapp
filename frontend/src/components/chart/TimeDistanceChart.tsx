@@ -33,7 +33,7 @@ export const TimeDistanceChart: React.FC<TimeDistanceChartProps> = ({
     if (!activeJourney) return;
     const title = activeJourney.tagLabel
       ? `Route: ${activeJourney.tagLabel}`
-      : 'RTTR Route';
+      : 'OMATA-Route';
     exportJourneyAsGraphic(activeJourney, title);
   };
 

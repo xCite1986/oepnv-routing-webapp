@@ -1,6 +1,6 @@
 @echo off
 echo ========================================================
-echo  Netlify Release Tool - RTTR (Realistic Transfer Travel Routes)
+echo  Netlify Release Tool - OMATA
 echo ========================================================
 echo.
 

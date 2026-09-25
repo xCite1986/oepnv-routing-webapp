@@ -1,4 +1,4 @@
-# RTTR – Realistic Transfer Travel Routes
+# OMATA – Optimal Multimodal Arrival & Transfer Assistant
 
 Moderne, einfach bedienbare Webapp für ÖPNV-Routing in Wien & Umgebung mit Live-Echtzeit, dynamischer Verspätungsberechnung und regelbasierter Routen-Erklärung unter realen Umstiegsbedingungen.
 
