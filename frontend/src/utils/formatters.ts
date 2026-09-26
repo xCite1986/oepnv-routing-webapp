@@ -1,7 +1,12 @@
 export function formatTime(isoString: string): string {
   try {
     const d = new Date(isoString);
-    return d.toLocaleTimeString('de-AT', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return d.toLocaleTimeString('de-AT', {
+      timeZone: 'Europe/Vienna',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
   } catch {
     return isoString;
   }
@@ -18,23 +23,24 @@ export function formatDisruptionTime(isoString?: string): string {
     if (isNaN(d.getTime())) return '';
 
     const now = new Date();
-    const isToday =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
 
     const timeStr = d.toLocaleTimeString('de-AT', {
+      timeZone: 'Europe/Vienna',
       hour: '2-digit',
       minute: '2-digit',
       hour12: false,
     });
 
+    const dDateStr = d.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna' });
+    const nowDateStr = now.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna' });
+    const isToday = dDateStr === nowDateStr;
+
     if (isToday) {
       return `heute, ${timeStr} Uhr`;
     }
 
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = d.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna', day: '2-digit' });
+    const month = d.toLocaleDateString('de-AT', { timeZone: 'Europe/Vienna', month: '2-digit' });
     return `${day}.${month}., ${timeStr} Uhr`;
   } catch {
     return '';

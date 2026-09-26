@@ -12,29 +12,41 @@ import {
 
 const SCOTTY_BASE = '/api/scotty';
 
-function parseHafasDateTime(dateStr: string, timeStr: string): Date {
-  if (!timeStr) {
-    const y = parseInt(dateStr.slice(0, 4), 10);
-    const m = parseInt(dateStr.slice(4, 6), 10) - 1;
-    const d = parseInt(dateStr.slice(6, 8), 10);
-    return new Date(Date.UTC(y, m, d, 0, 0, 0));
-  }
+function parseHafasDateTime(dateStr: string, timeStr?: string): Date {
   let daysAdd = 0;
-  let cleanTime = timeStr;
-  if (cleanTime.length === 8) {
+  let cleanTime = timeStr || '';
+  if (cleanTime && cleanTime.length === 8) {
     daysAdd = parseInt(cleanTime.slice(0, 2), 10);
     cleanTime = cleanTime.slice(2);
   }
   const y = parseInt(dateStr.slice(0, 4), 10);
-  const m = parseInt(dateStr.slice(4, 6), 10) - 1;
+  const m = parseInt(dateStr.slice(4, 6), 10);
   const d = parseInt(dateStr.slice(6, 8), 10);
-  const hh = parseInt(cleanTime.slice(0, 2), 10);
-  const mm = parseInt(cleanTime.slice(2, 4), 10);
-  const ss = parseInt(cleanTime.slice(4, 6), 10);
+  const hh = cleanTime ? parseInt(cleanTime.slice(0, 2), 10) : 0;
+  const mm = cleanTime ? parseInt(cleanTime.slice(2, 4), 10) : 0;
+  const ss = cleanTime ? parseInt(cleanTime.slice(4, 6), 10) : 0;
 
-  const dt = new Date(Date.UTC(y, m, d, hh, mm, ss));
+  // Scotty HAFAS liefert immer die lokale österreichische Zeit (Europe/Vienna).
+  // Wir ermitteln den genauen UTC-Offset für das Datum (+02:00 im Sommer, +01:00 im Winter),
+  // damit das erzeugte Date-Objekt die reale UTC-Zeit darstellt.
+  const refUtc = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+  let offsetHours = 2; // Default Sommerzeit CEST
+  try {
+    const viennaParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Europe/Vienna',
+      hour12: false,
+      hour: 'numeric',
+    }).formatToParts(refUtc);
+    const viennaHour = parseInt(viennaParts.find((p) => p.type === 'hour')?.value || '14', 10);
+    offsetHours = viennaHour - 12;
+  } catch {
+    offsetHours = 2;
+  }
+
+  const isoStr = `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}+${String(offsetHours).padStart(2, '0')}:00`;
+  const dt = new Date(isoStr);
   if (daysAdd > 0) {
-    dt.setUTCDate(dt.getUTCDate() + daysAdd);
+    dt.setTime(dt.getTime() + daysAdd * 86400000);
   }
   return dt;
 }
@@ -109,12 +121,42 @@ export class ScottyHafasClient {
       ]);
 
       const reqDate = request.dateTime ? new Date(request.dateTime) : new Date();
-      const yyyy = reqDate.getFullYear().toString();
-      const mm = String(reqDate.getMonth() + 1).padStart(2, '0');
-      const dd = String(reqDate.getDate()).padStart(2, '0');
-      const hh = String(reqDate.getHours()).padStart(2, '0');
-      const min = String(reqDate.getMinutes()).padStart(2, '0');
+      let yyyy = reqDate.getFullYear().toString();
+      let mm = String(reqDate.getMonth() + 1).padStart(2, '0');
+      let dd = String(reqDate.getDate()).padStart(2, '0');
+      let hh = String(reqDate.getHours()).padStart(2, '0');
+      let min = String(reqDate.getMinutes()).padStart(2, '0');
       const ss = '00';
+
+      try {
+        const viennaParts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Europe/Vienna',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }).formatToParts(reqDate);
+
+        const getPart = (type: string) => viennaParts.find((p) => p.type === type)?.value;
+        const vYear = getPart('year');
+        const vMonth = getPart('month');
+        const vDay = getPart('day');
+        let vHour = getPart('hour');
+        if (vHour === '24') vHour = '00';
+        const vMin = getPart('minute');
+
+        if (vYear && vMonth && vDay && vHour && vMin) {
+          yyyy = vYear;
+          mm = vMonth;
+          dd = vDay;
+          hh = vHour;
+          min = vMin;
+        }
+      } catch {
+        // Fallback
+      }
 
       const outDate = `${yyyy}${mm}${dd}`;
       const outTime = `${hh}${min}${ss}`;
