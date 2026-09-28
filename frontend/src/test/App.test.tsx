@@ -198,5 +198,10 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
     // There should be values formatted with German comma and "min", e.g. "+0,0 min"
     expect(screen.getAllByText(/\+[0-9]+,[0-9] min/).length).toBeGreaterThanOrEqual(3);
   });
+
+  it('renders connection badge as Live (ÖBB/WL Proxy) when proxies are active', () => {
+    render(<App />);
+    expect(screen.getByText('Live (ÖBB/WL Proxy)')).toBeInTheDocument();
+  });
 });
 

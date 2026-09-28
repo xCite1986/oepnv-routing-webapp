@@ -19,6 +19,7 @@ interface AppShellProps {
   showMapOnMobile?: boolean;
   onToggleMapMobile?: () => void;
   isBackendConnected?: boolean;
+  connectionMode?: 'BACKEND_LIVE' | 'PROXY_LIVE' | 'OFFLINE';
   onOpenAdmin?: () => void;
   onOpenDisruptions?: () => void;
   isCenteredMode?: boolean;
@@ -32,12 +33,16 @@ export const AppShell: React.FC<AppShellProps> = ({
   showMapOnMobile = false,
   onToggleMapMobile,
   isBackendConnected = false,
+  connectionMode,
   onOpenAdmin,
   onOpenDisruptions,
   isCenteredMode = false,
   onResetSearch,
 }) => {
   const [showInfoModal, setShowInfoModal] = useState(false);
+
+  // Bestimme aktiven Verbindungsmodus
+  const activeMode = connectionMode || (isBackendConnected ? 'BACKEND_LIVE' : 'PROXY_LIVE');
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-100 font-sans text-slate-800 antialiased">
@@ -71,21 +76,35 @@ export const AppShell: React.FC<AppShellProps> = ({
 
           {/* Right Header Actions */}
           <div className="flex items-center gap-2">
-            {/* Backend connection pill */}
+            {/* Backend / Proxy connection pill */}
             <div
               className={`hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                isBackendConnected
+                activeMode === 'BACKEND_LIVE' || activeMode === 'PROXY_LIVE'
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                  : 'bg-amber-50 text-amber-700 border-amber-200'
               }`}
-              title={isBackendConnected ? 'Mit lokalem FastAPI Backend verbunden' : 'Demo & Offline Modus (Wien Mock Engine)'}
+              title={
+                activeMode === 'BACKEND_LIVE'
+                  ? 'Mit lokalem FastAPI Backend verbunden'
+                  : activeMode === 'PROXY_LIVE'
+                  ? 'Live-Fahrpläne & Störungen über ÖBB Scotty & Wiener Linien Proxy aktiv'
+                  : 'Keine Schnittstelle erreichbar (Demo / Offline Modus)'
+              }
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  isBackendConnected ? 'bg-emerald-500' : 'bg-blue-500'
+                  activeMode === 'BACKEND_LIVE' || activeMode === 'PROXY_LIVE'
+                    ? 'bg-emerald-500'
+                    : 'bg-amber-500'
                 }`}
               />
-              <span>{isBackendConnected ? 'API Live' : 'Demo Modus'}</span>
+              <span>
+                {activeMode === 'BACKEND_LIVE'
+                  ? 'API Live'
+                  : activeMode === 'PROXY_LIVE'
+                  ? 'Live (ÖBB/WL Proxy)'
+                  : 'Demo / Offline'}
+              </span>
             </div>
 
             {/* Mobile Diagram Toggle */}

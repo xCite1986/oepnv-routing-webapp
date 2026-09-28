@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Journey, JourneySearchRequest, JourneySearchResponse, Leg, LocationPoint, TimeMode, TransferSpeed } from './types/routing';
-import { TransitApiClient } from './api/client';
+import { TransitApiClient, ConnectionStatusMode } from './api/client';
 import { AppShell } from './components/common/AppShell';
 import { SearchForm } from './components/search/SearchForm';
 import { JourneyResults } from './components/journeys/JourneyResults';
@@ -28,6 +28,7 @@ export const App: React.FC = () => {
   const [showDisruptionsSidebar, setShowDisruptionsSidebar] = useState<boolean>(false);
   const [showMapOnMobile, setShowMapOnMobile] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
+  const [connectionMode, setConnectionMode] = useState<ConnectionStatusMode>('PROXY_LIVE');
   const [lastRequest, setLastRequest] = useState<JourneySearchRequest | null>(null);
 
   // Sync hash routing #admin
@@ -44,10 +45,11 @@ export const App: React.FC = () => {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Check backend availability on mount
+  // Check backend & proxy availability on mount
   useEffect(() => {
-    TransitApiClient.checkBackendHealth().then((isAvailable) => {
-      setIsBackendConnected(isAvailable);
+    TransitApiClient.checkConnectionStatus().then((mode) => {
+      setConnectionMode(mode);
+      setIsBackendConnected(mode === 'BACKEND_LIVE');
     });
   }, []);
 
@@ -121,6 +123,7 @@ export const App: React.FC = () => {
         showMapOnMobile={showMapOnMobile}
         onToggleMapMobile={() => setShowMapOnMobile(!showMapOnMobile)}
         isBackendConnected={isBackendConnected}
+        connectionMode={connectionMode}
         onOpenDisruptions={() => setShowDisruptionsSidebar(true)}
         isCenteredMode={!hasSearched}
         onResetSearch={hasSearched ? handleResetSearch : undefined}

@@ -6,24 +6,80 @@ import { RealtimeIncidentsClient } from './realtimeIncidentsClient';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
+export type ConnectionStatusMode = 'BACKEND_LIVE' | 'PROXY_LIVE' | 'OFFLINE';
+
 export class TransitApiClient {
   private static useMockFallback = true;
   private static isBackendAvailable: boolean | null = null;
+  private static connectionStatus: ConnectionStatusMode = 'PROXY_LIVE';
 
-  static async checkBackendHealth(): Promise<boolean> {
+  static async checkConnectionStatus(): Promise<ConnectionStatusMode> {
+    // 1. Prüfe Python FastAPI Backend (falls lokal oder als eigener Container aktiv)
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
       const res = await fetch(`${API_BASE}/health`, { signal: controller.signal });
       clearTimeout(timeoutId);
       const contentType = res.headers.get('content-type') || '';
-      const isHealthy = res.ok && contentType.includes('application/json');
-      this.isBackendAvailable = isHealthy;
-      return isHealthy;
+      if (res.ok && contentType.includes('application/json')) {
+        this.isBackendAvailable = true;
+        this.connectionStatus = 'BACKEND_LIVE';
+        return 'BACKEND_LIVE';
+      }
     } catch {
       this.isBackendAvailable = false;
-      return false;
     }
+
+    // 2. Prüfe Browser-Offline-Status
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      this.connectionStatus = 'OFFLINE';
+      return 'OFFLINE';
+    }
+
+    // 3. Prüfe ÖBB Scotty Proxy (Netlify & Vite Reverse Proxy)
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch(
+        '/api/scotty/bin/ajax-getstop.exe/dny?start=1&getstop=1&REQ0JourneyStopsS0A=1&REQ0JourneyStopsB=1&REQ0JourneyStopsS0F=select!1!&S=Wien',
+        { signal: controller.signal }
+      );
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        this.connectionStatus = 'PROXY_LIVE';
+        return 'PROXY_LIVE';
+      }
+    } catch {
+      // Weiter zum nächsten Check
+    }
+
+    // 4. Prüfe Wiener Linien Proxy
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const res = await fetch('/api/wl/trafficInfoList', { signal: controller.signal });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        this.connectionStatus = 'PROXY_LIVE';
+        return 'PROXY_LIVE';
+      }
+    } catch {
+      // Weiter
+    }
+
+    // 5. Wenn im Browser online, sind die Proxys auf Netlify einsatzbereit
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
+      this.connectionStatus = 'PROXY_LIVE';
+      return 'PROXY_LIVE';
+    }
+
+    this.connectionStatus = 'OFFLINE';
+    return 'OFFLINE';
+  }
+
+  static async checkBackendHealth(): Promise<boolean> {
+    const status = await this.checkConnectionStatus();
+    return status === 'BACKEND_LIVE';
   }
 
   static async searchLocations(query: string): Promise<LocationPoint[]> {
