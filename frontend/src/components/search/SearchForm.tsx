@@ -8,16 +8,75 @@ import { ArrowUpDown, Search, SlidersHorizontal, Accessibility, Footprints, Zap 
 interface SearchFormProps {
   onSearch: (request: JourneySearchRequest) => void;
   isLoading?: boolean;
+  origin?: LocationPoint | null;
+  destination?: LocationPoint | null;
+  timeMode?: TimeMode;
+  dateTime?: string;
+  maxWalking?: number;
+  transferSpeed?: TransferSpeed;
+  onChangeOrigin?: (origin: LocationPoint | null) => void;
+  onChangeDestination?: (destination: LocationPoint | null) => void;
+  onChangeTimeMode?: (mode: TimeMode) => void;
+  onChangeDateTime?: (dt: string) => void;
+  onChangeMaxWalking?: (maxWalking: number) => void;
+  onChangeTransferSpeed?: (speed: TransferSpeed) => void;
 }
 
-export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = false }) => {
-  // Standard-Prefill nach §33: Stephansplatz -> Flughafen Wien
-  const [origin, setOrigin] = useState<LocationPoint | null>(VIENNA_LOCATIONS[0]); // Stephansplatz
-  const [destination, setDestination] = useState<LocationPoint | null>(VIENNA_LOCATIONS[1]); // Flughafen Wien
-  const [timeMode, setTimeMode] = useState<TimeMode>('NOW');
-  const [dateTime, setDateTime] = useState<string>(new Date().toISOString());
-  const [maxWalking, setMaxWalking] = useState<number>(1500);
-  const [transferSpeed, setTransferSpeed] = useState<TransferSpeed>('NORMAL');
+export const SearchForm: React.FC<SearchFormProps> = ({
+  onSearch,
+  isLoading = false,
+  origin: propOrigin,
+  destination: propDestination,
+  timeMode: propTimeMode,
+  dateTime: propDateTime,
+  maxWalking: propMaxWalking,
+  transferSpeed: propTransferSpeed,
+  onChangeOrigin,
+  onChangeDestination,
+  onChangeTimeMode,
+  onChangeDateTime,
+  onChangeMaxWalking,
+  onChangeTransferSpeed,
+}) => {
+  // Keine automatische Vorbelegung mit Stephansplatz/Flughafen (Start leer)
+  const [internalOrigin, setInternalOrigin] = useState<LocationPoint | null>(null);
+  const [internalDestination, setInternalDestination] = useState<LocationPoint | null>(null);
+  const [internalTimeMode, setInternalTimeMode] = useState<TimeMode>('NOW');
+  const [internalDateTime, setInternalDateTime] = useState<string>(new Date().toISOString());
+  const [internalMaxWalking, setInternalMaxWalking] = useState<number>(1500);
+  const [internalTransferSpeed, setInternalTransferSpeed] = useState<TransferSpeed>('NORMAL');
+
+  const origin = propOrigin !== undefined ? propOrigin : internalOrigin;
+  const destination = propDestination !== undefined ? propDestination : internalDestination;
+  const timeMode = propTimeMode !== undefined ? propTimeMode : internalTimeMode;
+  const dateTime = propDateTime !== undefined ? propDateTime : internalDateTime;
+  const maxWalking = propMaxWalking !== undefined ? propMaxWalking : internalMaxWalking;
+  const transferSpeed = propTransferSpeed !== undefined ? propTransferSpeed : internalTransferSpeed;
+
+  const setOrigin = (val: LocationPoint | null) => {
+    if (onChangeOrigin) onChangeOrigin(val);
+    else setInternalOrigin(val);
+  };
+  const setDestination = (val: LocationPoint | null) => {
+    if (onChangeDestination) onChangeDestination(val);
+    else setInternalDestination(val);
+  };
+  const setTimeMode = (val: TimeMode) => {
+    if (onChangeTimeMode) onChangeTimeMode(val);
+    else setInternalTimeMode(val);
+  };
+  const setDateTime = (val: string) => {
+    if (onChangeDateTime) onChangeDateTime(val);
+    else setInternalDateTime(val);
+  };
+  const setMaxWalking = (val: number) => {
+    if (onChangeMaxWalking) onChangeMaxWalking(val);
+    else setInternalMaxWalking(val);
+  };
+  const setTransferSpeed = (val: TransferSpeed) => {
+    if (onChangeTransferSpeed) onChangeTransferSpeed(val);
+    else setInternalTransferSpeed(val);
+  };
 
   const handleSwap = () => {
     const temp = origin;
@@ -61,7 +120,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = fa
         <LocationInput
           id="origin-input"
           label="Von"
-          placeholder="Start (z.B. Stephansplatz)"
+          placeholder="Start (Haltestelle oder Adresse)"
           value={origin}
           onChange={setOrigin}
           icon="origin"
@@ -73,7 +132,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = fa
             type="button"
             onClick={handleSwap}
             aria-label="Start und Ziel tauschen"
-            className="p-2 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-300 shadow-xs transition-all active:scale-95"
+            className="p-2 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-300 shadow-xs transition-all active:scale-95 cursor-pointer"
             title="Start und Ziel tauschen"
           >
             <ArrowUpDown className="w-3.5 h-3.5" />
@@ -83,7 +142,7 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, isLoading = fa
         <LocationInput
           id="destination-input"
           label="Nach"
-          placeholder="Ziel (z.B. Flughafen Wien)"
+          placeholder="Ziel (Haltestelle oder Adresse)"
           value={destination}
           onChange={setDestination}
           icon="destination"

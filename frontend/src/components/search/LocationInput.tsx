@@ -28,8 +28,9 @@ export const LocationInput: React.FC<LocationInputProps> = ({
 
   // Sync internal text only when value prop actually changes externally
   useEffect(() => {
-    if (value?.label !== undefined && value.label !== inputValue) {
-      setInputValue(value.label);
+    const nextVal = value?.label ?? '';
+    if (nextVal !== inputValue) {
+      setInputValue(nextVal);
     }
   }, [value?.label]);
 
@@ -56,6 +57,8 @@ export const LocationInput: React.FC<LocationInputProps> = ({
               });
             }
           }
+        } else if (value) {
+          onChange(null);
         }
       }
     };

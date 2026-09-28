@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Journey, JourneySearchRequest, JourneySearchResponse, Leg } from './types/routing';
+import { Journey, JourneySearchRequest, JourneySearchResponse, Leg, LocationPoint, TimeMode, TransferSpeed } from './types/routing';
 import { TransitApiClient } from './api/client';
 import { AppShell } from './components/common/AppShell';
 import { SearchForm } from './components/search/SearchForm';
@@ -12,6 +12,12 @@ import { ArrowLeft } from 'lucide-react';
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'app' | 'admin'>('app');
   const [hasSearched, setHasSearched] = useState<boolean>(false);
+  const [origin, setOrigin] = useState<LocationPoint | null>(null);
+  const [destination, setDestination] = useState<LocationPoint | null>(null);
+  const [timeMode, setTimeMode] = useState<TimeMode>('NOW');
+  const [dateTime, setDateTime] = useState<string>(new Date().toISOString());
+  const [maxWalking, setMaxWalking] = useState<number>(1500);
+  const [transferSpeed, setTransferSpeed] = useState<TransferSpeed>('NORMAL');
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<Leg | null>(null);
@@ -51,6 +57,12 @@ export const App: React.FC = () => {
     setIsLoading(true);
     setError(null);
     setLastRequest(request);
+    setOrigin(request.from);
+    setDestination(request.to);
+    if (request.timeMode) setTimeMode(request.timeMode);
+    if (request.dateTime) setDateTime(request.dateTime);
+    if (request.preferences?.maxWalkingDistance) setMaxWalking(request.preferences.maxWalkingDistance);
+    if (request.preferences?.transferSpeed) setTransferSpeed(request.preferences.transferSpeed);
 
     try {
       const response: JourneySearchResponse = await TransitApiClient.searchJourneys(request);
@@ -142,7 +154,22 @@ export const App: React.FC = () => {
         )}
 
         {/* Search Input Form */}
-        <SearchForm onSearch={handleSearch} isLoading={isLoading} />
+        <SearchForm
+          origin={origin}
+          destination={destination}
+          timeMode={timeMode}
+          dateTime={dateTime}
+          maxWalking={maxWalking}
+          transferSpeed={transferSpeed}
+          onChangeOrigin={setOrigin}
+          onChangeDestination={setDestination}
+          onChangeTimeMode={setTimeMode}
+          onChangeDateTime={setDateTime}
+          onChangeMaxWalking={setMaxWalking}
+          onChangeTransferSpeed={setTransferSpeed}
+          onSearch={handleSearch}
+          isLoading={isLoading}
+        />
 
         {/* Results List - only rendered after search */}
         {hasSearched && (

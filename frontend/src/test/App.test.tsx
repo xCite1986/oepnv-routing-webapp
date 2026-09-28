@@ -4,18 +4,29 @@ import React from 'react';
 import App from '../App';
 
 describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', () => {
+  const triggerSearch = (origin = 'Stephansplatz, Wien', destination = 'Flughafen Wien (Schwechat)') => {
+    const originInput = screen.getByLabelText('Von');
+    const destInput = screen.getByLabelText('Nach');
+    fireEvent.change(originInput, { target: { value: origin } });
+    fireEvent.change(destInput, { target: { value: destination } });
+    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
+    fireEvent.click(searchBtn);
+  };
+
   it('renders application header and title', () => {
     render(<App />);
     expect(screen.getAllByText('OMATA').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/Optimal Multimodal Arrival & Transfer Assistant/i).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders "Von" and "Nach" input fields with Vienna defaults', () => {
+  it('renders "Von" and "Nach" input fields empty initially without prefilling', () => {
     render(<App />);
     expect(screen.getByLabelText('Von')).toBeInTheDocument();
     expect(screen.getByLabelText('Nach')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Stephansplatz, Wien')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Flughafen Wien (Schwechat)')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Stephansplatz, Wien')).not.toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Flughafen Wien (Schwechat)')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Start (Haltestelle oder Adresse)')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Ziel (Haltestelle oder Adresse)')).toBeInTheDocument();
   });
 
   it('does not search on initial load and renders the search form centered', () => {
@@ -29,8 +40,7 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
   it('displays the recommended journey with the required explanation from prompt after search', async () => {
     render(<App />);
 
-    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
-    fireEvent.click(searchBtn);
+    triggerSearch();
 
     // Wait for the mock results to load
     await waitFor(() => {
@@ -45,11 +55,39 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
     ).toBeInTheDocument();
   });
 
-  it('displays alternatives and trade-off comparison after search', async () => {
+  it('preserves user input across search and when returning to standard view', async () => {
     render(<App />);
+    const originInput = screen.getByLabelText('Von');
+    const destInput = screen.getByLabelText('Nach');
+    fireEvent.change(originInput, { target: { value: 'Wien Geiselbergstraße' } });
+    fireEvent.change(destInput, { target: { value: 'Bruck an der Leitha' } });
 
     const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
     fireEvent.click(searchBtn);
+
+    // Wait for results
+    await waitFor(() => {
+      expect(screen.getAllByText('EMPFOHLEN').length).toBeGreaterThanOrEqual(1);
+    });
+
+    // Inputs in the search results view still have the user's entries
+    expect(screen.getByDisplayValue('Wien Geiselbergstraße')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Bruck an der Leitha')).toBeInTheDocument();
+
+    // Click "Neue Suche (Startansicht)"
+    const resetBtn = screen.getByRole('button', { name: /Neue Suche/i });
+    fireEvent.click(resetBtn);
+
+    // Back in standard view, entries are still preserved!
+    expect(screen.getByText('Wohin möchtest du fahren?')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Wien Geiselbergstraße')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Bruck an der Leitha')).toBeInTheDocument();
+  });
+
+  it('displays alternatives and trade-off comparison after search', async () => {
+    render(<App />);
+
+    triggerSearch();
 
     await waitFor(() => {
       expect(screen.getAllByText('DIREKTER').length).toBeGreaterThanOrEqual(1);
@@ -71,8 +109,7 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
   it('opens and closes the live disruptions sidebar from the trigger button', async () => {
     render(<App />);
 
-    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
-    fireEvent.click(searchBtn);
+    triggerSearch();
 
     await waitFor(() => {
       expect(screen.getAllByText('EMPFOHLEN').length).toBeGreaterThanOrEqual(1);
@@ -125,8 +162,7 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
   it('renders Zeit-Weg-Liniengrafik replacing the map with vertical bars and export button', async () => {
     render(<App />);
 
-    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
-    fireEvent.click(searchBtn);
+    triggerSearch();
 
     await waitFor(() => {
       expect(screen.getByText('Zeit-Weg-Liniengrafik')).toBeInTheDocument();
@@ -148,8 +184,7 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
   it('renders Kosten- & Risiko-Score penalties in minutes with one decimal place', async () => {
     render(<App />);
 
-    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
-    fireEvent.click(searchBtn);
+    triggerSearch();
 
     await waitFor(() => {
       expect(screen.getAllByText('Kosten- & Risiko-Score').length).toBeGreaterThanOrEqual(1);
