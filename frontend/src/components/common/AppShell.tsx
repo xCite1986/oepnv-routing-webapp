@@ -21,6 +21,8 @@ interface AppShellProps {
   isBackendConnected?: boolean;
   onOpenAdmin?: () => void;
   onOpenDisruptions?: () => void;
+  isCenteredMode?: boolean;
+  onResetSearch?: () => void;
 }
 
 export const AppShell: React.FC<AppShellProps> = ({
@@ -32,6 +34,8 @@ export const AppShell: React.FC<AppShellProps> = ({
   isBackendConnected = false,
   onOpenAdmin,
   onOpenDisruptions,
+  isCenteredMode = false,
+  onResetSearch,
 }) => {
   const [showInfoModal, setShowInfoModal] = useState(false);
 
@@ -41,8 +45,12 @@ export const AppShell: React.FC<AppShellProps> = ({
       <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
         <div className="max-w-[1760px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="px-3 h-10 min-w-[62px] rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 font-black text-xs sm:text-sm tracking-wider select-none shrink-0">
+          <div
+            className={`flex items-center gap-3 ${onResetSearch ? 'cursor-pointer group' : ''}`}
+            onClick={onResetSearch}
+            title={onResetSearch ? 'Zurück zur Startseite (Neue Suche)' : undefined}
+          >
+            <div className="px-3 h-10 min-w-[62px] rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center text-white shadow-md shadow-red-500/20 font-black text-xs sm:text-sm tracking-wider select-none shrink-0 group-hover:scale-102 transition-transform">
               OMATA
             </div>
             <div>
@@ -81,7 +89,7 @@ export const AppShell: React.FC<AppShellProps> = ({
             </div>
 
             {/* Mobile Diagram Toggle */}
-            {onToggleMapMobile && (
+            {!isCenteredMode && onToggleMapMobile && (chartNode || mapNode) && (
               <button
                 type="button"
                 onClick={onToggleMapMobile}
@@ -135,24 +143,38 @@ export const AppShell: React.FC<AppShellProps> = ({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1760px] w-full mx-auto p-3 sm:p-5 lg:p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left Column: Form & Journey Results (Desktop: 4 cols) */}
-          <div className={`space-y-6 ${showMapOnMobile ? 'hidden lg:block' : 'block'} lg:col-span-4 xl:col-span-4`}>
+      <main className="flex-1 max-w-[1760px] w-full mx-auto p-3 sm:p-5 lg:p-6 flex flex-col justify-center">
+        {isCenteredMode ? (
+          <div className="w-full max-w-xl mx-auto py-6 sm:py-10 animate-in fade-in duration-300">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Wohin möchtest du fahren?
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1.5">
+                Echtzeit-optimierte Routen &amp; verlässliche Umstiege in Wien &amp; Umgebung
+              </p>
+            </div>
             {children}
           </div>
-
-          {/* Right Column: Chart / Comparison Diagram (Desktop: 8 cols, Mobile: full view when toggled) */}
-          {(chartNode || mapNode) && (
-            <div
-              className={`lg:col-span-8 xl:col-span-8 ${
-                showMapOnMobile ? 'block h-[calc(100vh-6rem)]' : 'hidden lg:block'
-              } lg:sticky lg:top-20 h-[650px] lg:h-[calc(100vh-7rem)]`}
-            >
-              {chartNode || mapNode}
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            {/* Left Column: Form & Journey Results (Desktop: 4 cols) */}
+            <div className={`space-y-6 ${showMapOnMobile ? 'hidden lg:block' : 'block'} lg:col-span-4 xl:col-span-4`}>
+              {children}
             </div>
-          )}
-        </div>
+
+            {/* Right Column: Chart / Comparison Diagram (Desktop: 8 cols, Mobile: full view when toggled) */}
+            {(chartNode || mapNode) && (
+              <div
+                className={`lg:col-span-8 xl:col-span-8 ${
+                  showMapOnMobile ? 'block h-[calc(100vh-6rem)]' : 'hidden lg:block'
+                } lg:sticky lg:top-20 h-[650px] lg:h-[calc(100vh-7rem)]`}
+              >
+                {chartNode || mapNode}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Footer */}

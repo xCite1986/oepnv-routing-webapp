@@ -7,10 +7,11 @@ import { JourneyResults } from './components/journeys/JourneyResults';
 import { TimeDistanceChart } from './components/chart/TimeDistanceChart';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { DisruptionsSidebar } from './components/disruptions/DisruptionsSidebar';
-import { VIENNA_LOCATIONS } from './api/viennaLocations';
+import { ArrowLeft } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'app' | 'admin'>('app');
+  const [hasSearched, setHasSearched] = useState<boolean>(false);
   const [journeys, setJourneys] = useState<Journey[]>([]);
   const [selectedJourney, setSelectedJourney] = useState<Journey | null>(null);
   const [selectedLeg, setSelectedLeg] = useState<Leg | null>(null);
@@ -46,6 +47,7 @@ export const App: React.FC = () => {
 
   // Execute Search
   const handleSearch = useCallback(async (request: JourneySearchRequest) => {
+    setHasSearched(true);
     setIsLoading(true);
     setError(null);
     setLastRequest(request);
@@ -68,21 +70,13 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // Initial Search according to §33: Stephansplatz -> Flughafen Wien
-  useEffect(() => {
-    const initialRequest: JourneySearchRequest = {
-      from: VIENNA_LOCATIONS[0], // Stephansplatz
-      to: VIENNA_LOCATIONS[1],   // Flughafen Wien
-      dateTime: new Date().toISOString(),
-      timeMode: 'DEPARTURE',
-      preferences: {
-        maxWalkingDistance: 1500,
-        maxTransfers: 6,
-        optimization: 'FASTEST',
-      },
-    };
-    handleSearch(initialRequest);
-  }, [handleSearch]);
+  const handleResetSearch = () => {
+    setHasSearched(false);
+    setJourneys([]);
+    setSelectedJourney(null);
+    setSelectedLeg(null);
+    setError(null);
+  };
 
   const handleSelectJourney = (journey: Journey) => {
     setSelectedJourney(journey);
@@ -116,36 +110,56 @@ export const App: React.FC = () => {
         onToggleMapMobile={() => setShowMapOnMobile(!showMapOnMobile)}
         isBackendConnected={isBackendConnected}
         onOpenDisruptions={() => setShowDisruptionsSidebar(true)}
+        isCenteredMode={!hasSearched}
+        onResetSearch={hasSearched ? handleResetSearch : undefined}
         onOpenAdmin={() => {
           window.location.hash = '#admin';
           setCurrentView('admin');
         }}
         chartNode={
-          <TimeDistanceChart
-            journeys={journeys}
-            selectedJourney={selectedJourney}
-            onSelectJourney={handleSelectJourney}
-            onCloseMobile={() => setShowMapOnMobile(false)}
-          />
+          hasSearched ? (
+            <TimeDistanceChart
+              journeys={journeys}
+              selectedJourney={selectedJourney}
+              onSelectJourney={handleSelectJourney}
+              onCloseMobile={() => setShowMapOnMobile(false)}
+            />
+          ) : undefined
         }
       >
+        {/* Reset button when search has been performed */}
+        {hasSearched && (
+          <div className="flex justify-between items-center -mb-2">
+            <button
+              type="button"
+              onClick={handleResetSearch}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-red-600 transition-colors cursor-pointer py-1 px-2 rounded-lg hover:bg-slate-200/60"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Neue Suche (Startansicht)</span>
+            </button>
+          </div>
+        )}
+
         {/* Search Input Form */}
         <SearchForm onSearch={handleSearch} isLoading={isLoading} />
 
-        {/* Results List */}
-        <JourneyResults
-          journeys={journeys}
-          selectedJourneyId={selectedJourney?.id}
-          isLoading={isLoading}
-          error={error}
-          realtimeActive={realtimeActive}
-          disruptionSummary={disruptionSummary}
-          onOpenDisruptions={() => setShowDisruptionsSidebar(true)}
-          onSelectJourney={handleSelectJourney}
-          onSelectLeg={handleSelectLeg}
-          onShowOnMap={handleShowOnMap}
-          onRetry={() => lastRequest && handleSearch(lastRequest)}
-        />
+        {/* Results List - only rendered after search */}
+        {hasSearched && (
+          <JourneyResults
+            journeys={journeys}
+            selectedJourneyId={selectedJourney?.id}
+            isLoading={isLoading}
+            error={error}
+            realtimeActive={realtimeActive}
+            disruptionSummary={disruptionSummary}
+            onOpenDisruptions={() => setShowDisruptionsSidebar(true)}
+            onSelectJourney={handleSelectJourney}
+            onSelectLeg={handleSelectLeg}
+            onShowOnMap={handleShowOnMap}
+            onRetry={() => lastRequest && handleSearch(lastRequest)}
+          />
+        )}
       </AppShell>
 
       {/* Ausklappbare Sidebar rechts für aktuelle Störungen */}

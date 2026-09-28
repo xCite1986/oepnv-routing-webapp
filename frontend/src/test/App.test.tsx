@@ -18,8 +18,19 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
     expect(screen.getByDisplayValue('Flughafen Wien (Schwechat)')).toBeInTheDocument();
   });
 
-  it('displays the recommended journey with the required explanation from prompt', async () => {
+  it('does not search on initial load and renders the search form centered', () => {
     render(<App />);
+    expect(screen.getByText('Wohin möchtest du fahren?')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Verbindungen suchen/i })).toBeInTheDocument();
+    expect(screen.queryByText('EMPFOHLEN')).not.toBeInTheDocument();
+    expect(screen.queryByText('Zeit-Weg-Liniengrafik')).not.toBeInTheDocument();
+  });
+
+  it('displays the recommended journey with the required explanation from prompt after search', async () => {
+    render(<App />);
+
+    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
+    fireEvent.click(searchBtn);
 
     // Wait for the mock results to load
     await waitFor(() => {
@@ -34,8 +45,11 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
     ).toBeInTheDocument();
   });
 
-  it('displays alternatives and trade-off comparison', async () => {
+  it('displays alternatives and trade-off comparison after search', async () => {
     render(<App />);
+
+    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
+    fireEvent.click(searchBtn);
 
     await waitFor(() => {
       expect(screen.getAllByText('DIREKTER').length).toBeGreaterThanOrEqual(1);
@@ -56,6 +70,9 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
 
   it('opens and closes the live disruptions sidebar from the trigger button', async () => {
     render(<App />);
+
+    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
+    fireEvent.click(searchBtn);
 
     await waitFor(() => {
       expect(screen.getAllByText('EMPFOHLEN').length).toBeGreaterThanOrEqual(1);
@@ -108,6 +125,9 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
   it('renders Zeit-Weg-Liniengrafik replacing the map with vertical bars and export button', async () => {
     render(<App />);
 
+    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
+    fireEvent.click(searchBtn);
+
     await waitFor(() => {
       expect(screen.getByText('Zeit-Weg-Liniengrafik')).toBeInTheDocument();
       expect(screen.getByText(/Fahrzeiten, Linien & Umstiege im Direkten vergleich/i)).toBeInTheDocument();
@@ -127,6 +147,9 @@ describe('OMATA – Optimal Multimodal Arrival & Transfer Assistant Frontend', (
 
   it('renders Kosten- & Risiko-Score penalties in minutes with one decimal place', async () => {
     render(<App />);
+
+    const searchBtn = screen.getByRole('button', { name: /Verbindungen suchen/i });
+    fireEvent.click(searchBtn);
 
     await waitFor(() => {
       expect(screen.getAllByText('Kosten- & Risiko-Score').length).toBeGreaterThanOrEqual(1);
